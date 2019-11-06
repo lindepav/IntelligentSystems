@@ -14,23 +14,24 @@ install.packages("gower")
 library(caret)
 library(mlbench)
 
-Task 1: Maximization of a non-convex function.
-## 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
+## Task 1: Maximization of a non-convex function.
+# 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
 f <- function(x, y)  {
   z <- ((1 - x)^2) + (exp(1) * (y - (x^2))^2)
 }
 
-## 2. Code a method that visualizes the Rosenbrock function in 3D
+# 2. Code a method that visualizes the Rosenbrock function in 3D
 x <- y <- seq(-1, 1, length= 400)
 z <- outer(x, y, f)
 z[is.na(z)] <- 1 # change non-defined elements to 1
 persp(x, y, z, theta = 0, phi = 25, expand = 1, col = "lightblue", ticktype = "detailed")
 
-## 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
+# 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
 GA <- ga(type = "real-valued", 
          fitness =  function(x) f(x[1], x[2]),
          lower = c(-1, -1), upper = c(1, 1), 
          popSize = 50, maxiter = 1000, run = 100)
+
 plot(GA)
 summary(GA)
 res <- persp(x, y, z, theta = 45, phi = 20, expand = 1, col = "lightblue",
@@ -42,20 +43,34 @@ points(trans3d(max_x, max_y, max_z, pmat=res), col="red")
 lines (trans3d(x, max_y, max_z, pmat = res), col = "blue")
 lines (trans3d(max_x, y, max_z, pmat = res), col = "blue")
 
-Task 2: Genetic feature selection
+# BONUS: Plot the trace of evolution
+monitor <- function(obj) 
+{ 
+  persp(x, y, z, theta = 0, phi = 25, expand = 1, col = "lightblue", ticktype = "detailed")
+  title(paste("iteration =", obj@iter), font.main = 1)
+  points(obj@population, obj@fitness, pch = 20, col = 2)
+  Sys.sleep(0.2)
+}
+
+res
+x = seq(-1, 0.1, 1)
+lines (trans3d(x, 1, max_z, pmat = res), col = "green")
+
+
+##Task 2: Genetic feature selection
 # Work plan:
 # 1) Read in the data
 # 2) Split the data into training and test sets
 # 3) Build a model using the training set
 # 4) Evaluate the model using the test set
 
-## 1) Read in the dataset 
+# 1) Read in the dataset 
 genes <- DLBCL
 summary(genes)
 target <- genes$class
 genes <- genes[,-which(names(genes) == "class")]
 
-## 2) Split the data into training and test sets
+# 2) Split the data into training and test sets
 splited <- createDataPartition(
   y = target,
   p = .8,
@@ -71,8 +86,8 @@ nrow(test)
 table(learn$class)
 table(test$class)
 
-## 3) Build a model using the training set 
-## (TODO: • Fitness must take into account both the number of features, as well as the classifier’s performance)
+# 3) Build a model using the training set 
+# (TODO: • Fitness must take into account both the number of features, as well as the classifier’s performance)
 ctrl <- trainControl(number = 3,
                      method = "repeatedcv")
                      
@@ -86,7 +101,7 @@ model <- train(
 ggplot(model)
 
 
-## 4) Evaluate the model using the test set (TODO: try different models)
+# 4) Evaluate the model using the test set (TODO: try different models)
 plsClasses <- predict(model, newdata = test)
 str(plsClasses)
 
