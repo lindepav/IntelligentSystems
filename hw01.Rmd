@@ -1,0 +1,37 @@
+---
+title: "Assigment1"
+author: "Pavel Linder, Nikita Brancatisano"
+date: "11/6/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+## 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
+f <- function(x, y)  {
+  z <- ((1 - x)^2) + (exp(1) * (y - (x^2))^2)
+}
+
+## 2. Code a method that visualizes the Rosenbrock function in 3D
+x <- seq(-1, 1, length= 40)
+y <- x
+z <- outer(x, y, f)
+z[is.na(z)] <- 1 # change non-defined elements to 1
+persp(y, x, z, theta = 0, phi = 25, expand = 1, col = "lightblue")
+
+## 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
+
+
