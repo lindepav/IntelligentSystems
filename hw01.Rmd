@@ -19,19 +19,45 @@ plot(pressure)
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
+#install.packages("scatterplot3d")
+#library("scatterplot3d")
+install.packages("rgl")
+library("rgl")
 
+Task 1: Maximization of a non-convex function.
 ## 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
 f <- function(x, y)  {
   z <- ((1 - x)^2) + (exp(1) * (y - (x^2))^2)
 }
 
 ## 2. Code a method that visualizes the Rosenbrock function in 3D
-x <- seq(-1, 1, length= 40)
-y <- x
+x <- y <- seq(-1, 1, length= 400)
 z <- outer(x, y, f)
 z[is.na(z)] <- 1 # change non-defined elements to 1
-persp(y, x, z, theta = 0, phi = 25, expand = 1, col = "lightblue")
+persp(x, y, z, theta = 0, phi = 25, expand = 1, col = "lightblue", ticktype = "detailed")
 
 ## 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
+GA <- ga(type = "real-valued", 
+         fitness =  function(x) f(x[1], x[2]),
+         lower = c(-1, -1), upper = c(1, 1), 
+         popSize = 50, maxiter = 1000, run = 100)
+plot(GA)
+summary(GA)
+res <- persp(x, y, z, theta = 45, phi = 20, expand = 1, col = "lightblue",
+      ltheta = 120, shade = 0.75, ticktype = "detailed")
+max_x = GA@solution[,1]
+max_y = GA@solution[,2]
+max_z = f(GA@solution[,1], GA@solution[,2])
+points(trans3d(max_x, max_y, max_z, pmat=res), col="red")
+lines (trans3d(x, max_y, max_z, pmat = res), col = "blue")
+lines (trans3d(max_x, y, max_z, pmat = res), col = "blue")
+
+Task 2: Genetic feature selection
+## 
+# Read in the dataset 
+genes <- DLBCL
+
+# Get the summary statistics of the data
+summary(genes)
 
 
