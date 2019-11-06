@@ -5,24 +5,14 @@ date: "11/6/2019"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-#install.packages("scatterplot3d")
-#library("scatterplot3d")
+## Installing packages
 install.packages("rgl")
 library("rgl")
+install.packages("caret")
+install.packages("generics")
+install.packages("gower")
+library(caret)
+library(mlbench)
 
 Task 1: Maximization of a non-convex function.
 ## 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
@@ -53,11 +43,55 @@ lines (trans3d(x, max_y, max_z, pmat = res), col = "blue")
 lines (trans3d(max_x, y, max_z, pmat = res), col = "blue")
 
 Task 2: Genetic feature selection
-## 
-# Read in the dataset 
+# Work plan:
+# 1) Read in the data
+# 2) Split the data into training and test sets
+# 3) Build a model using the training set
+# 4) Evaluate the model using the test set
+
+## 1) Read in the dataset 
 genes <- DLBCL
-
-# Get the summary statistics of the data
 summary(genes)
+target <- genes$class
+genes <- genes[,-which(names(genes) == "class")]
 
+## 2) Split the data into training and test sets
+splited <- createDataPartition(
+  y = target,
+  p = .8,
+  list = FALSE
+)
+
+str(splited)    # The output is a set of integers for the rows of genes that belong in the training set.
+learn = genes[ splited, ]
+test = genes[-splited, ]
+
+nrow(learn)
+nrow(test)
+table(learn$class)
+table(test$class)
+
+## 3) Build a model using the training set 
+## (TODO: • Fitness must take into account both the number of features, as well as the classifier’s performance)
+ctrl <- trainControl(number = 3,
+                     method = "repeatedcv")
+                     
+model <- train(
+  class ~ .,   # TODO: change from 2 to 1000
+  data = learn,
+  method = "pls",
+  preProc = c("center", "scale"),
+  trControl = ctrl
+)
+ggplot(model)
+
+
+## 4) Evaluate the model using the test set (TODO: try different models)
+plsClasses <- predict(model, newdata = test)
+str(plsClasses)
+
+plsProbs <- predict(model, newdata = test, type = "prob")
+head(plsProbs)
+
+confusionMatrix(data = plsClasses, test$class)
 
