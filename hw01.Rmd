@@ -7,12 +7,15 @@ output: pdf_document
 
 ## Installing packages
 install.packages("rgl")
-library("rgl")
 install.packages("caret")
 install.packages("generics")
+install.packages("plot3D")
 install.packages("gower")
+
 library(caret)
-library(mlbench)
+library("rgl")
+library("plot3D")
+library("GA")
 
 ## Task 1: Maximization of a non-convex function.
 # 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
@@ -34,14 +37,15 @@ GA <- ga(type = "real-valued",
 
 plot(GA)
 summary(GA)
-res <- persp(x, y, z, theta = 40, phi = 20, expand = 1, col = "lightblue",
-      ltheta = 120, shade = 0.75, ticktype = "detailed")
+res <- persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
+
 max_x = GA@solution[,1]
 max_y = GA@solution[,2]
 max_z = f(GA@solution[,1], GA@solution[,2])
-points(trans3d(max_x, max_y, max_z, pmat=res), col="red")
-lines (trans3d(x, max_y, max_z, pmat = res), col = "blue")
-lines (trans3d(max_x, y, max_z, pmat = res), col = "blue")
+
+points3D(x = max_x, y = max_y, z = max_z, col = "black", size = 100, add=T)
+#lines3d (x, max_y, max_z, col = "blue")
+#lines3d (max_x, y, max_z, col = "blue")
 
 # BONUS: Plot the trace of evolution
 history_x = c()
@@ -56,13 +60,10 @@ for (i in 1:12) {
     history_y[i] <- GA2@solution[,2]
 }	
 
-res2 <- persp(x, y, z, theta = 40, phi = 20, expand = 1, col = "lightblue",
-      ltheta = 120, shade = 0.75, ticktype = "detailed")
-#points (trans3d(history_x, history_y, z = f(history_x, history_y), pmat = res), col = "green")
-#points(trans3d(history_x, history_y, z = f(history_x, history_y), pmat = res), col = "green", lwd = 1)
-points(trans3d(history_x, history_y, z = f(history_x, history_y), pmat = res2), col = "red", lwd = 1, cex=0.3)
-text(trans3d(history_x[1:3], history_y[1:3], z = f(history_x, history_y), pmat = res2), label = 25*c(1:3), col = "green", lwd = 0.3, pos=4, cex=0.35)
-text(trans3d(history_x[10:12], history_y[10:12], z = f(history_x, history_y), pmat = res2), label = 25*c(10:12), col = "green", lwd = 0.3, pos=4, cex=0.35)
+res2 <- persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors, ticktype = "detailed")
+points3D(x = history_x, y = history_y, z = f(history_x, history_y), col = "black", size = 2, add=T)
+text3D(x = history_x[1:3], y = history_y[1:3], z = f(history_x[1:3], history_y[1:3]), labels = 25*c(1:3), col = "black", pos=4, add=T)
+text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], history_y[10:12]), labels = 25*c(10:12), col = "black", pos=4, add=T)
 
 monitor <- function(obj) 
 { 
@@ -132,4 +133,3 @@ plsProbs <- predict(model, newdata = test, type = "prob")
 head(plsProbs)
 
 confusionMatrix(data = plsClasses, test$class)
-
