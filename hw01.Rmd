@@ -48,6 +48,7 @@ for (i in 1:length(crossovers)) {
   if (best < GA@fitness) {
     name <- crossovers[i]
     best[1] <- GA@fitness
+    best_result <- GA@solution
   }
   results[i] <- GA@fitness
 }
@@ -55,15 +56,15 @@ for (i in 1:length(crossovers)) {
 results
 best
 name
+best_result
 
 plot(GA)
 summary(GA)
 res <- persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
 
-max_x = GA@solution[,1]
-max_y = GA@solution[,2]
-max_z = f(GA@solution[,1], GA@solution[,2])
-
+max_x = best_result[1]
+max_y = best_result[2]
+max_z = f(max_x, max_y)
 points3D(x = max_x, y = max_y, z = max_z, col = "black", size = 100, add=T)
 
 # BONUS: Plot the trace of evolution
@@ -93,7 +94,7 @@ text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], histo
 # 4) Evaluate the model using the test set
 
 # 1) Read in the dataset 
-genes <- DLBCL
+genes <- read.csv("DLBCL.csv")
 summary(genes)
 target <- genes$class
 genes <- genes[,-which(names(genes) == "class")]
