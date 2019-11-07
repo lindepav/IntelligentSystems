@@ -34,7 +34,7 @@ GA <- ga(type = "real-valued",
 
 plot(GA)
 summary(GA)
-res <- persp(x, y, z, theta = 45, phi = 20, expand = 1, col = "lightblue",
+res <- persp(x, y, z, theta = 40, phi = 20, expand = 1, col = "lightblue",
       ltheta = 120, shade = 0.75, ticktype = "detailed")
 max_x = GA@solution[,1]
 max_y = GA@solution[,2]
@@ -44,17 +44,46 @@ lines (trans3d(x, max_y, max_z, pmat = res), col = "blue")
 lines (trans3d(max_x, y, max_z, pmat = res), col = "blue")
 
 # BONUS: Plot the trace of evolution
+history_x = c()
+history_y = c()
+
+for (i in 1:30) {
+    GA2 <- ga(type = "real-valued", 
+         fitness =  function(x) f(x[1], x[2]),
+         lower = c(-1, -1), upper = c(1, 1), 
+         popSize = 50, maxiter = i*10, run = 100)
+     history_x[i] <- GA2@solution[,1]
+     history_y[i] <- GA2@solution[,2]
+
+}	
+
+history_x
+history_y
+
+dat <- read.table(text= "x y z 
+history_x history_y f(history_x, history_y)", header = TRUE)
+
+res
+points (trans3d(history_x, history_y, z = f(history_x, history_y), pmat = res), col = "green")
+#lines(trans3d(history_x, history_y, f(history_x, history_y), pmat = res), col = "red")
+lines(dat)
+
+
+
 monitor <- function(obj) 
 { 
-  persp(x, y, z, theta = 0, phi = 25, expand = 1, col = "lightblue", ticktype = "detailed")
+  contour(x, y, z)
   title(paste("iteration =", obj@iter), font.main = 1)
   points(obj@population, obj@fitness, pch = 20, col = 2)
   Sys.sleep(0.2)
 }
 
-res
-x = seq(-1, 0.1, 1)
-lines (trans3d(x, 1, max_z, pmat = res), col = "green")
+
+ga(type = "real-valued", 
+         fitness =  function(x) f(x[1], x[2]),
+         lower = c(-1, -1), upper = c(1, 1), 
+         popSize = 50, maxiter = 1000, run = 100,
+         monitor = monitor)
 
 
 ##Task 2: Genetic feature selection
