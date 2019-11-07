@@ -17,6 +17,8 @@ library("rgl")
 library("plot3D")
 library("GA")
 
+library("dplyr")
+
 ## Task 1: Maximization of a non-convex function.
 # 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
 f <- function(x, y)  {
@@ -24,10 +26,10 @@ f <- function(x, y)  {
 }
 
 # 2. Code a method that visualizes the Rosenbrock function in 3D
-x <- y <- seq(-1, 1, length= 400)
+x <- y <- seq(-1, 1, length= 20)
 z <- outer(x, y, f)
 z[is.na(z)] <- 1 # change non-defined elements to 1
-persp(x, y, z, theta = 0, phi = 25, expand = 1, col = "lightblue", ticktype = "detailed")
+persp(x, y, z, theta = 30, phi = 20, expand = 1, col = "lightblue", ticktype = "detailed")
 
 # 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
 crossovers = c("ga_spCrossover", 
@@ -60,11 +62,11 @@ plot(GA)
 summary(GA)
 res <- persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
 
-max_x = GA@solution[,1]
-max_y = GA@solution[,2]
-max_z = f(GA@solution[,1], GA@solution[,2])
+max_x = GA@solution[1]
+max_y = GA@solution[2]
+max_z = f(GA@solution[1], GA@solution[2])
 
-points3D(x = max_x, y = max_y, z = max_z, col = "black", size = 100, add=T)
+points3D(1,1,f(1,1), col = "black", size = 30, add=T)
 
 # BONUS: Plot the trace of evolution
 history_x = c()
@@ -79,7 +81,7 @@ for (i in 1:12) {
     history_y[i] <- GA2@solution[,2]
 }	
 
-res2 <- persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors, ticktype = "detailed")
+res2 <- persp3D(x = x, y = y, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors, ticktype = "detailed")
 points3D(x = history_x, y = history_y, z = f(history_x, history_y), col = "black", size = 2, transparency = 0, add=T)
 text3D(x = history_x[1:3], y = history_y[1:3], z = f(history_x[1:3], history_y[1:3]), labels = 25*c(1:3), col = "black", pos=4, size = 0.1, add=T)
 text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], history_y[10:12]), labels = 25*c(10:12), col = "black", size = 0.1, pos=4, add=T)
@@ -96,7 +98,7 @@ text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], histo
 genes <- DLBCL
 summary(genes)
 target <- genes$class
-genes <- genes[,-which(names(genes) == "class")]
+#genes <- genes[,-which(names(genes) == "class")]
 
 # 2) Split the data into training and test sets
 splited <- createDataPartition(
@@ -113,20 +115,73 @@ nrow(learn)
 nrow(test)
 table(learn$class)
 table(test$class)
+learn$X <- NULL
+test$X <- NULL
 
 # 3) Build a model using the training set 
 # (TODO: • Fitness must take into account both the number of features, as well as the classifier’s performance)
 ctrl <- trainControl(number = 3,
                      method = "repeatedcv")
                      
-model <- train(
+PLSModel <- train(
   class ~ .,   # TODO: change from 2 to 1000
   data = learn,
   method = "pls",
   preProc = c("center", "scale"),
-  trControl = ctrl
+  trControl = ctrl,
+  tuneLenght = 1000
 )
+
+           
+
+RFModel <- train(
+  class ~ .,   
+  data = learn,
+  method = "rf",
+  preProc = c("center", "scale"),
+  trControl = ctrl,
+  tuneLenght = 1000
+)
+
+           
+
+xgbModel <- train(
+  class ~ .,   
+  data = learn,
+  method = "xgbDART",
+  preProc = c("center", "scale"),
+  trControl = ctrl,
+  tuneLenght = 100
+)
+
+
+SVMModel <- train(
+  class ~ .,   
+  data = learn,
+  method = "svmRadial",
+  preProc = c("center", "scale"),
+  trControl = ctrl,
+  tuneLenght = 1000
+)
+
+models_compare <- resamples(list(RF=RFModel, XGBDART=xgbModel, PLS=PLSModel, SVM=SVMModel))
+
+
+summary(models_compare)
+
+varimp <- varImp(model)
+imp <- varimp$importance
+
+
+
 ggplot(model)
+ggplot(model2)
+#ggplot(model3)
+
+
+model$resample
+
+model2$resample
 
 
 # 4) Evaluate the model using the test set (TODO: try different models)
@@ -137,3 +192,4 @@ plsProbs <- predict(model, newdata = test, type = "prob")
 head(plsProbs)
 
 confusionMatrix(data = plsClasses, test$class)
+
