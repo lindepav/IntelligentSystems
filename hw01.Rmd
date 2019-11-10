@@ -70,12 +70,11 @@ for (i in 1:length(crossovers)) {
 ```{r summary, echo = T}
 plot(GA)
 summary(GA)
-res <- persp3d(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
 max_x = GA@solution[1]
 max_y = GA@solution[2]
 max_z = f(GA@solution[1], GA@solution[2])
-
-points3d(max_z, max_y, max_z, col = "red", size = 30, add=T)
+{persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
+points3D(max_x, max_y, max_z, col = "blue", size = 300, add=T)}
 
 # BONUS: Plot the trace of evolution
 history_x = c()
@@ -117,9 +116,8 @@ text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], histo
 ## 4) Evaluate the model using the test set
 
 ## 1) Read in the dataset 
-```{r import, echo=TRUE}
+```{r import, echo=F}
 genes <- DLBCL
-summary(genes)
 target <- genes$class
 ```
 
@@ -131,14 +129,9 @@ splited <- createDataPartition(
   list = FALSE
 )
 
-str(splited)    # The output is a set of integers for the rows of genes that belong in the training set.
 learn = genes[ splited, ]
 test = genes[-splited, ]
 
-nrow(learn)
-nrow(test)
-table(learn$class)
-table(test$class)
 learn$X <- NULL
 test$X <- NULL
 ```
