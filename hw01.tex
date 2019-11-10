@@ -1,0 +1,297 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Assigment1},
+            pdfauthor={Pavel Linder, Nikita Brancatisano},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Assigment1}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Pavel Linder, Nikita Brancatisano}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{11/6/2019}
+
+
+\begin{document}
+\maketitle
+
+\hypertarget{installing-packages}{%
+\subsection{Installing packages}\label{installing-packages}}
+
+install.packages(``rgl'') install.packages(``caret'')
+install.packages(``generics'') install.packages(``plot3D'')
+install.packages(``gower'')
+
+library(caret) library(``rgl'') library(``plot3D'') library(``GA'')
+
+library(``dplyr'')
+
+\hypertarget{what-does-it-mean-for-a-function-to-be-non-convex}{%
+\subsection{What does it mean for a function to be
+non-convex?}\label{what-does-it-mean-for-a-function-to-be-non-convex}}
+
+\hypertarget{a-function-is-non-convex-or-concave-if-for-any-xx-and-yy-in-the-interval-and-for-any}{%
+\section{\texorpdfstring{A function is non-convex (or concave) if for
+any \{\displaystyle x\}x and \{\displaystyle y\}y in the interval and
+for
+any}{A function is non-convex (or concave) if for any \{x\}x and \{y\}y in the interval and for any}}\label{a-function-is-non-convex-or-concave-if-for-any-xx-and-yy-in-the-interval-and-for-any}}
+
+\hypertarget{the-following-equation-is-valid}{%
+\section{\texorpdfstring{\{\displaystyle \alpha \in [0,1]\}\alpha \in [0,1],
+the following equation is
+valid:}{\{\}, the following equation is valid:}}\label{the-following-equation-is-valid}}
+
+\hypertarget{f1-xy1-fxfy}{%
+\section{\texorpdfstring{\{\displaystyle f((1-\alpha )x+\alpha y)\geq (1-\alpha )f(x)+\alpha f(y)\}}{\{f((1-)x+y)(1-)f(x)+f(y)\}}}\label{f1-xy1-fxfy}}
+
+\hypertarget{task-1-maximization-of-a-non-convex-function.}{%
+\subsection{Task 1: Maximization of a non-convex
+function.}\label{task-1-maximization-of-a-non-convex-function.}}
+
+\hypertarget{code-a-method-fx-y-that-computes-a-value-z-given-an-input-tuple-x-y.}{%
+\section{1. Code a method f(x, y) that computes a value z, given an
+input tuple (x,
+y).}\label{code-a-method-fx-y-that-computes-a-value-z-given-an-input-tuple-x-y.}}
+
+f \textless- function(x, y) \{ z \textless- ((1 - x)\^{}2) + (exp(1) *
+(y - (x\textsuperscript{2))}2) \}
+
+\hypertarget{code-a-method-that-visualizes-the-rosenbrock-function-in-3d}{%
+\section{2. Code a method that visualizes the Rosenbrock function in
+3D}\label{code-a-method-that-visualizes-the-rosenbrock-function-in-3d}}
+
+x \textless- y \textless- seq(-1, 1, length= 20) z \textless- outer(x,
+y, f) z{[}is.na(z){]} \textless- 1 \# change non-defined elements to 1
+persp(x, y, z, theta = 30, phi = 20, expand = 1, col = ``lightblue'',
+ticktype = ``detailed'')
+
+\hypertarget{code-a-genetic-algorithm-that-attempts-to-find-the-global-maximum-of-this-function.}{%
+\section{3. Code a genetic algorithm, that attempts to find the global
+maximum of this
+function.}\label{code-a-genetic-algorithm-that-attempts-to-find-the-global-maximum-of-this-function.}}
+
+crossovers = c(``ga\_spCrossover'', ``gabin\_spCrossover'',
+``gabin\_uCrossover'', ``gareal\_spCrossover'', ``gareal\_waCrossover'',
+``gareal\_laCrossover'', ``gareal\_blxCrossover'',
+``gareal\_laplaceCrossover'', ``gaperm\_cxCrossover'',
+``gaperm\_pmxCrossover'', ``gaperm\_pmxCrossover'' ) results = c() best
+\textless- 0 name \textless- 0 for (i in 1:length(crossovers)) \{ GA
+\textless- ga(type = ``real-valued'', fitness = function(x) f(x{[}1{]},
+x{[}2{]}), lower = c(-1, -1), upper = c(1, 1), popSize = 50, maxiter =
+1000, run = 100, crossover = crossovers{[}i{]} ) if (best \textless{}
+\href{mailto:GA@fitness}{\nolinkurl{GA@fitness}}) \{ name \textless-
+crossovers{[}i{]} best{[}1{]} \textless-
+\href{mailto:GA@fitness}{\nolinkurl{GA@fitness}} \} results{[}i{]}
+\textless- \href{mailto:GA@fitness}{\nolinkurl{GA@fitness}} \}
+
+results best name
+
+plot(GA) summary(GA) res \textless- persp3D(x = x, y = x, z = z,theta =
+30, phi = 25, col.palette = bl2gr.colors)
+
+max\_x = \href{mailto:GA@solution}{\nolinkurl{GA@solution}}{[}1{]}
+max\_y = \href{mailto:GA@solution}{\nolinkurl{GA@solution}}{[}2{]}
+max\_z = f(\href{mailto:GA@solution}{\nolinkurl{GA@solution}}{[}1{]},
+\href{mailto:GA@solution}{\nolinkurl{GA@solution}}{[}2{]})
+
+points3D(max\_z, max\_y, max\_z, col = ``black'', size = 30, add=T)
+
+\hypertarget{bonus-plot-the-trace-of-evolution}{%
+\section{BONUS: Plot the trace of
+evolution}\label{bonus-plot-the-trace-of-evolution}}
+
+history\_x = c() history\_y = c()
+
+for (i in 1:12) \{ GA2 \textless- ga(type = ``real-valued'', fitness =
+function(x) f(x{[}1{]}, x{[}2{]}), lower = c(-1, -1), upper = c(1, 1),
+popSize = 50, maxiter = 25*i, run = 100) history\_x{[}i{]} \textless-
+\href{mailto:GA2@solution}{\nolinkurl{GA2@solution}}{[},1{]}
+history\_y{[}i{]} \textless-
+\href{mailto:GA2@solution}{\nolinkurl{GA2@solution}}{[},2{]} \}
+
+res2 \textless- persp3D(x = x, y = y, z = z,theta = 30, phi = 25,
+col.palette = bl2gr.colors, ticktype = ``detailed'') points3D(x =
+history\_x, y = history\_y, z = f(history\_x, history\_y), col =
+``black'', size = 2, transparency = 0, add=T) text3D(x =
+history\_x{[}1:3{]}, y = history\_y{[}1:3{]}, z = f(history\_x{[}1:3{]},
+history\_y{[}1:3{]}), labels = 25\emph{c(1:3), col = ``black'', pos=4,
+size = 0.1, add=T) text3D(x = history\_x{[}10:12{]}, y =
+history\_y{[}10:12{]}, z = f(history\_x{[}10:12{]},
+history\_y{[}10:12{]}), labels = 25}c(10:12), col = ``black'', size =
+0.1, pos=4, add=T)
+
+\hypertarget{discuss-the-results.}{%
+\subsection{4. Discuss the results.}\label{discuss-the-results.}}
+
+\hypertarget{how-does-performance-vary-when-you-are-increasing-the-number-of-iterations}{%
+\subsection{• How does performance vary when you are increasing the
+number of
+iterations?}\label{how-does-performance-vary-when-you-are-increasing-the-number-of-iterations}}
+
+\hypertarget{the-performance-is-slowed-down-because-the-ga-reaches-the-maximum-solution-much-before-we-run-all-of-the-iterations-thus}{%
+\section{The performance is slowed down because the GA reaches the
+maximum solution much before we run all of the iterations,
+thus}\label{the-performance-is-slowed-down-because-the-ga-reaches-the-maximum-solution-much-before-we-run-all-of-the-iterations-thus}}
+
+\hypertarget{increasing-the-number-would-only-slow-down-the-search-without-providing-any-significant-benefit.}{%
+\section{increasing the number would only slow down the search without
+providing any significant
+benefit.}\label{increasing-the-number-would-only-slow-down-the-search-without-providing-any-significant-benefit.}}
+
+\#\#• What about population size? \# Increasing the population size
+actually speeds up the process but there's a diminishing return on how
+much we can increase the \# population. After a certain amount
+(depending on the problem) increasing it just slows down the GA.
+
+\#\#• Explain the difference between local and global maxima. \# A local
+maxima is the biggest element for one given subset of the whole
+function. There can still be other values greater than \# this one,
+outside ofthe range of the subset. The global maximum is the largest
+overall value of the funtion.
+
+\#\#Task 2: Genetic feature selection \# Work plan: \# 1) Read in the
+data \# 2) Split the data into training and test sets \# 3) Build a
+model using the training set \# 4) Evaluate the model using the test set
+
+\hypertarget{read-in-the-dataset}{%
+\section{1) Read in the dataset}\label{read-in-the-dataset}}
+
+genes \textless- DLBCL summary(genes) target \textless- genes\$class
+\#genes \textless- genes{[},-which(names(genes) == ``class''){]}
+
+\hypertarget{split-the-data-into-training-and-test-sets}{%
+\section{2) Split the data into training and test
+sets}\label{split-the-data-into-training-and-test-sets}}
+
+splited \textless- createDataPartition( y = target, p = .8, list = FALSE
+)
+
+str(splited) \# The output is a set of integers for the rows of genes
+that belong in the training set. learn = genes{[} splited, {]} test =
+genes{[}-splited, {]}
+
+nrow(learn) nrow(test) table(learn\(class) table(test\)class)
+learn\(X <- NULL test\)X \textless- NULL
+
+\hypertarget{build-a-model-using-the-training-set}{%
+\section{3) Build a model using the training
+set}\label{build-a-model-using-the-training-set}}
+
+\hypertarget{todo-fitness-must-take-into-account-both-the-number-of-features-as-well-as-the-classifiers-performance}{%
+\section{(TODO: • Fitness must take into account both the number of
+features, as well as the classifier's
+performance)}\label{todo-fitness-must-take-into-account-both-the-number-of-features-as-well-as-the-classifiers-performance}}
+
+ctrl \textless- trainControl(number = 3, method = ``repeatedcv'')
+
+PLSModel \textless- train( class \textasciitilde{} ., data = learn,
+method = ``pls'', preProc = c(``center'', ``scale''), trControl = ctrl,
+tuneLenght = 1000 )
+
+RFModel \textless- train( class \textasciitilde{} .,\\
+data = learn, method = ``rf'', preProc = c(``center'', ``scale''),
+trControl = ctrl, tuneLenght = 1000 )
+
+xgbModel \textless- train( class \textasciitilde{} .,\\
+data = learn, method = ``xgbDART'', preProc = c(``center'', ``scale''),
+trControl = ctrl, tuneLenght = 100 )
+
+SVMModel \textless- train( class \textasciitilde{} .,\\
+data = learn, method = ``svmRadial'', preProc = c(``center'',
+``scale''), trControl = ctrl, tuneLenght = 1000 )
+
+models\_compare \textless- resamples(list(RF=RFModel, XGBDART=xgbModel,
+PLS=PLSModel, SVM=SVMModel))
+
+summary(models\_compare)
+
+varimp \textless- varImp(RFModel) imp \textless- varimp\$importance
+
+plot(varimp)
+
+\hypertarget{evaluate-the-model-using-the-test-set-todo-try-different-models}{%
+\section{4) Evaluate the model using the test set (TODO: try different
+models)}\label{evaluate-the-model-using-the-test-set-todo-try-different-models}}
+
+plsClasses \textless- predict(xgbModel, newdata = test) str(plsClasses)
+
+plsProbs \textless- predict(xgbModel, newdata = test, type = ``prob'')
+head(plsProbs)
+
+confusionMatrix(data = plsClasses, test\$class)
+
+
+\end{document}
