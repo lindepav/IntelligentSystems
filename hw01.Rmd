@@ -70,6 +70,8 @@ max_z = f(GA@solution[1], GA@solution[2])
 
 points3D(max_z, max_y, max_z, col = "black", size = 30, add=T)
 
+# TODO: plot it properly and make a summary
+
 # BONUS: Plot the trace of evolution
 history_x = c()
 history_y = c()
@@ -88,6 +90,7 @@ points3D(x = history_x, y = history_y, z = f(history_x, history_y), col = "black
 text3D(x = history_x[1:3], y = history_y[1:3], z = f(history_x[1:3], history_y[1:3]), labels = 25*c(1:3), col = "black", pos=4, size = 0.1, add=T)
 text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], history_y[10:12]), labels = 25*c(10:12), col = "black", size = 0.1, pos=4, add=T)
 ```
+# TODO: plot it properly...
 
 ##Task 2: Genetic feature selection
 # Work plan:
