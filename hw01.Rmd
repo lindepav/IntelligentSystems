@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ---
 title: "Assigment1"
 author: "Pavel Linder, Nikita Brancatisano"
@@ -204,4 +205,3 @@ plsProbs <- predict(xgbModel, newdata = test, type = "prob")
 head(plsProbs)
 
 confusionMatrix(data = plsClasses, test$class)
-
