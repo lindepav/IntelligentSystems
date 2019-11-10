@@ -91,13 +91,20 @@
 \hypertarget{installing-packages}{%
 \subsection{Installing packages}\label{installing-packages}}
 
-install.packages(``rgl'') install.packages(``caret'')
-install.packages(``generics'') install.packages(``plot3D'')
-install.packages(``gower'')
+\begin{verbatim}
+install.packages("rgl")
+install.packages("caret")
+install.packages("generics")
+install.packages("plot3D")
+install.packages("gower")
 
-library(caret) library(``rgl'') library(``plot3D'') library(``GA'')
+library(caret)
+library("rgl")
+library("plot3D")
+library("GA")
 
-library(``dplyr'')
+library("dplyr")
+\end{verbatim}
 
 \hypertarget{what-does-it-mean-for-a-function-to-be-non-convex}{%
 \subsection{What does it mean for a function to be
@@ -126,17 +133,17 @@ function.}\label{task-1-maximization-of-a-non-convex-function.}}
 input tuple (x,
 y).}\label{code-a-method-fx-y-that-computes-a-value-z-given-an-input-tuple-x-y.}}
 
-f \textless- function(x, y) \{ z \textless- ((1 - x)\^{}2) + (exp(1) *
-(y - (x\textsuperscript{2))}2) \}
+f \textless{}- function(x, y) \{ z \textless{}- ((1 - x)\^{}2) + (exp(1)
+* (y - (x\textsuperscript{2))}2) \}
 
 \hypertarget{code-a-method-that-visualizes-the-rosenbrock-function-in-3d}{%
 \section{2. Code a method that visualizes the Rosenbrock function in
 3D}\label{code-a-method-that-visualizes-the-rosenbrock-function-in-3d}}
 
-x \textless- y \textless- seq(-1, 1, length= 20) z \textless- outer(x,
-y, f) z{[}is.na(z){]} \textless- 1 \# change non-defined elements to 1
-persp(x, y, z, theta = 30, phi = 20, expand = 1, col = ``lightblue'',
-ticktype = ``detailed'')
+x \textless{}- y \textless{}- seq(-1, 1, length= 20) z \textless{}-
+outer(x, y, f) z{[}is.na(z){]} \textless{}- 1 \# change non-defined
+elements to 1 persp(x, y, z, theta = 30, phi = 20, expand = 1, col =
+``lightblue'', ticktype = ``detailed'')
 
 \hypertarget{code-a-genetic-algorithm-that-attempts-to-find-the-global-maximum-of-this-function.}{%
 \section{3. Code a genetic algorithm, that attempts to find the global
@@ -148,19 +155,19 @@ crossovers = c(``ga\_spCrossover'', ``gabin\_spCrossover'',
 ``gareal\_laCrossover'', ``gareal\_blxCrossover'',
 ``gareal\_laplaceCrossover'', ``gaperm\_cxCrossover'',
 ``gaperm\_pmxCrossover'', ``gaperm\_pmxCrossover'' ) results = c() best
-\textless- 0 name \textless- 0 for (i in 1:length(crossovers)) \{ GA
-\textless- ga(type = ``real-valued'', fitness = function(x) f(x{[}1{]},
-x{[}2{]}), lower = c(-1, -1), upper = c(1, 1), popSize = 50, maxiter =
-1000, run = 100, crossover = crossovers{[}i{]} ) if (best \textless{}
-\href{mailto:GA@fitness}{\nolinkurl{GA@fitness}}) \{ name \textless-
-crossovers{[}i{]} best{[}1{]} \textless-
+\textless{}- 0 name \textless{}- 0 for (i in 1:length(crossovers)) \{ GA
+\textless{}- ga(type = ``real-valued'', fitness = function(x)
+f(x{[}1{]}, x{[}2{]}), lower = c(-1, -1), upper = c(1, 1), popSize = 50,
+maxiter = 1000, run = 100, crossover = crossovers{[}i{]} ) if (best
+\textless{} \href{mailto:GA@fitness}{\nolinkurl{GA@fitness}}) \{ name
+\textless{}- crossovers{[}i{]} best{[}1{]} \textless{}-
 \href{mailto:GA@fitness}{\nolinkurl{GA@fitness}} \} results{[}i{]}
-\textless- \href{mailto:GA@fitness}{\nolinkurl{GA@fitness}} \}
+\textless{}- \href{mailto:GA@fitness}{\nolinkurl{GA@fitness}} \}
 
 results best name
 
-plot(GA) summary(GA) res \textless- persp3D(x = x, y = x, z = z,theta =
-30, phi = 25, col.palette = bl2gr.colors)
+plot(GA) summary(GA) res \textless{}- persp3D(x = x, y = x, z = z,theta
+= 30, phi = 25, col.palette = bl2gr.colors)
 
 max\_x = \href{mailto:GA@solution}{\nolinkurl{GA@solution}}{[}1{]}
 max\_y = \href{mailto:GA@solution}{\nolinkurl{GA@solution}}{[}2{]}
@@ -175,14 +182,14 @@ evolution}\label{bonus-plot-the-trace-of-evolution}}
 
 history\_x = c() history\_y = c()
 
-for (i in 1:12) \{ GA2 \textless- ga(type = ``real-valued'', fitness =
+for (i in 1:12) \{ GA2 \textless{}- ga(type = ``real-valued'', fitness =
 function(x) f(x{[}1{]}, x{[}2{]}), lower = c(-1, -1), upper = c(1, 1),
-popSize = 50, maxiter = 25*i, run = 100) history\_x{[}i{]} \textless-
+popSize = 50, maxiter = 25*i, run = 100) history\_x{[}i{]} \textless{}-
 \href{mailto:GA2@solution}{\nolinkurl{GA2@solution}}{[},1{]}
-history\_y{[}i{]} \textless-
+history\_y{[}i{]} \textless{}-
 \href{mailto:GA2@solution}{\nolinkurl{GA2@solution}}{[},2{]} \}
 
-res2 \textless- persp3D(x = x, y = y, z = z,theta = 30, phi = 25,
+res2 \textless{}- persp3D(x = x, y = y, z = z,theta = 30, phi = 25,
 col.palette = bl2gr.colors, ticktype = ``detailed'') points3D(x =
 history\_x, y = history\_y, z = f(history\_x, history\_y), col =
 ``black'', size = 2, transparency = 0, add=T) text3D(x =
@@ -225,26 +232,23 @@ overall value of the funtion.
 \#\#Task 2: Genetic feature selection \# Work plan: \# 1) Read in the
 data \# 2) Split the data into training and test sets \# 3) Build a
 model using the training set \# 4) Evaluate the model using the test set
-
-\hypertarget{read-in-the-dataset}{%
-\section{1) Read in the dataset}\label{read-in-the-dataset}}
-
-genes \textless- DLBCL summary(genes) target \textless- genes\$class
-\#genes \textless- genes{[},-which(names(genes) == ``class''){]}
+\# 1) Read in the dataset genes \textless{}- DLBCL summary(genes) target
+\textless{}- genes\$class \#genes \textless{}-
+genes{[},-which(names(genes) == ``class''){]}
 
 \hypertarget{split-the-data-into-training-and-test-sets}{%
 \section{2) Split the data into training and test
 sets}\label{split-the-data-into-training-and-test-sets}}
 
-splited \textless- createDataPartition( y = target, p = .8, list = FALSE
-)
+splited \textless{}- createDataPartition( y = target, p = .8, list =
+FALSE )
 
 str(splited) \# The output is a set of integers for the rows of genes
 that belong in the training set. learn = genes{[} splited, {]} test =
 genes{[}-splited, {]}
 
 nrow(learn) nrow(test) table(learn\(class) table(test\)class)
-learn\(X <- NULL test\)X \textless- NULL
+learn\(X <- NULL test\)X \textless{}- NULL
 
 \hypertarget{build-a-model-using-the-training-set}{%
 \section{3) Build a model using the training
@@ -255,40 +259,41 @@ set}\label{build-a-model-using-the-training-set}}
 features, as well as the classifier's
 performance)}\label{todo-fitness-must-take-into-account-both-the-number-of-features-as-well-as-the-classifiers-performance}}
 
-ctrl \textless- trainControl(number = 3, method = ``repeatedcv'')
+ctrl \textless{}- trainControl(number = 3, method = ``repeatedcv'')
 
-PLSModel \textless- train( class \textasciitilde{} ., data = learn,
+PLSModel \textless{}- train( class \textasciitilde{} ., data = learn,
 method = ``pls'', preProc = c(``center'', ``scale''), trControl = ctrl,
 tuneLenght = 1000 )
 
-RFModel \textless- train( class \textasciitilde{} .,\\
+RFModel \textless{}- train( class \textasciitilde{} .,\\
 data = learn, method = ``rf'', preProc = c(``center'', ``scale''),
 trControl = ctrl, tuneLenght = 1000 )
 
-xgbModel \textless- train( class \textasciitilde{} .,\\
+xgbModel \textless{}- train( class \textasciitilde{} .,\\
 data = learn, method = ``xgbDART'', preProc = c(``center'', ``scale''),
 trControl = ctrl, tuneLenght = 100 )
 
-SVMModel \textless- train( class \textasciitilde{} .,\\
+SVMModel \textless{}- train( class \textasciitilde{} .,\\
 data = learn, method = ``svmRadial'', preProc = c(``center'',
 ``scale''), trControl = ctrl, tuneLenght = 1000 )
 
-models\_compare \textless- resamples(list(RF=RFModel, XGBDART=xgbModel,
-PLS=PLSModel, SVM=SVMModel))
+models\_compare \textless{}- resamples(list(RF=RFModel,
+XGBDART=xgbModel, PLS=PLSModel, SVM=SVMModel))
 
 summary(models\_compare)
 
-varimp \textless- varImp(RFModel) imp \textless- varimp\$importance
+varimp \textless{}- varImp(RFModel) imp \textless{}- varimp\$importance
 
 plot(varimp)
 
-\hypertarget{evaluate-the-model-using-the-test-set-todo-try-different-models}{%
-\section{4) Evaluate the model using the test set (TODO: try different
-models)}\label{evaluate-the-model-using-the-test-set-todo-try-different-models}}
+\hypertarget{evaluate-the-model-using-the-test-set}{%
+\section{4) Evaluate the model using the test
+set}\label{evaluate-the-model-using-the-test-set}}
 
-plsClasses \textless- predict(xgbModel, newdata = test) str(plsClasses)
+plsClasses \textless{}- predict(xgbModel, newdata = test)
+str(plsClasses)
 
-plsProbs \textless- predict(xgbModel, newdata = test, type = ``prob'')
+plsProbs \textless{}- predict(xgbModel, newdata = test, type = ``prob'')
 head(plsProbs)
 
 confusionMatrix(data = plsClasses, test\$class)
