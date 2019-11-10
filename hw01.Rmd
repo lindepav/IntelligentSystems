@@ -220,6 +220,11 @@ plot(results)
 
 # Compare the final result (set of features) with the same number of features, that correlate the most with the target variable
 result <- genes[, predictors(results)] 
-topCor <- imp[order(imp[,1], decreasing=TRUE),]
+topCor <- varimp[order(imp[,1], decreasing = TRUE)]
+topCor
+#topCor <- topCor[0:15]
+
+result
+topCor
 
 ```
