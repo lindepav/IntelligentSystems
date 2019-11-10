@@ -192,7 +192,7 @@ summary(models_compare)
 varimp <- varImp(RFModel)
 imp <- varimp$importance
 
-plot(varimp, top = 30)
+plot(varimp, top = 15)
 ```
 ## 4) Evaluate the model using the test set 
 ```{r eval, echo=TRUE}
@@ -204,3 +204,24 @@ head(plsProbs)
 
 confusionMatrix(data = plsClasses, test$class)
 ```
+
+## Discussing the results 
+## Was the feature selection successful? Report how many features were needed for the final performance. Plot the trace of
+## evolution and comment on the change of fitness through generations.
+
+## Suggest how to improve the selection process.
+# We could use variables thar have a high influence of the class instead of selecting random ones
+
+## The procedure might overfit the data set. How would you prevent it?
+# We would just run different tests with different ammounts of features and test cases and then we would test the results
+# to see which quantity is actually the best one
+
+## What are some of the key properties of the fitness function?
+# The fitness function represent the number of successes while testing our classifier. The more successes we have the more our function fits the model
+
+## Compare the final result (set of features) with the same number of features, that correlate the most with the target variable. ## What do you observe?
+# We observe nothing
+
+
+
+
