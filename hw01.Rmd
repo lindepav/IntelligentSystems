@@ -7,10 +7,11 @@ output: pdf_document
 
 # Installing packages
 
-```{r, echo=TRUE}
-library(caret)
+```{r lib, echo=TRUE}
 library("rgl")
 library("plot3D")
+library(caret)
+
 library("GA")
 library("dplyr")
 ```
@@ -22,7 +23,7 @@ library("dplyr")
 
 # Task 1: Maximization of a non-convex function.
 ## 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
-```{r, echo=TRUE}
+```{r func, echo=TRUE}
 f <- function(x, y)  {
   z <- ((1 - x)^2) + (exp(1) * (y - (x^2))^2)
 }
@@ -30,25 +31,27 @@ f <- function(x, y)  {
 ```
 
 ## 2. Code a method that visualizes the Rosenbrock function in 3D
-```{r, echo=TRUE}
+```{r rosenbrock, echo=TRUE}
 x <- y <- seq(-1, 1, length= 20)
 z <- outer(x, y, f)
 z[is.na(z)] <- 1 # change non-defined elements to 1
-persp(x, y, z, theta = 30, phi = 20, expand = 1, col = "lightblue", ticktype = "detailed")
+persp3D(x, y, z, theta = 30, phi = 20, expand = 1, col = "lightblue")
 ```
 
 ## 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
-```{r, echo=TRUE}
+```{r crossover, echo=TRUE}
 #We select a list of crossovers
 crossovers = c("ga_spCrossover", 
               "gabin_spCrossover", "gabin_uCrossover",
               "gareal_spCrossover", "gareal_waCrossover", "gareal_laCrossover", "gareal_blxCrossover", "gareal_laplaceCrossover",
               "gaperm_cxCrossover", "gaperm_pmxCrossover", "gaperm_pmxCrossover"
         )
+
 results = c()
 best <- 0
 name <- 0
-
+```
+```{r ga}
 #We train them all and then we select the best
 for (i in 1:length(crossovers)) {
   GA <- ga(type = "real-valued", 
@@ -63,16 +66,16 @@ for (i in 1:length(crossovers)) {
   }
   results[i] <- GA@fitness
 }
-
+```
+```{r summary, echo = T}
 plot(GA)
 summary(GA)
-res <- persp3D(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
-
+res <- persp3d(x = x, y = x, z = z,theta = 30, phi = 25, col.palette = bl2gr.colors)
 max_x = GA@solution[1]
 max_y = GA@solution[2]
 max_z = f(GA@solution[1], GA@solution[2])
 
-points3D(max_z, max_y, max_z, col = "black", size = 30, add=T)
+points3d(max_z, max_y, max_z, col = "red", size = 30, add=T)
 
 # BONUS: Plot the trace of evolution
 history_x = c()
@@ -114,14 +117,14 @@ text3D(x = history_x[10:12], y = history_y[10:12], z = f(history_x[10:12], histo
 ## 4) Evaluate the model using the test set
 
 ## 1) Read in the dataset 
-```{r, echo=TRUE}
+```{r import, echo=TRUE}
 genes <- DLBCL
 summary(genes)
 target <- genes$class
 ```
 
 ## 2) Split the data into training and test sets
-```{r, echo=TRUE}
+```{r splitting, echo=TRUE}
 splited <- createDataPartition(
   y = target,
   p = .8,
@@ -141,7 +144,7 @@ test$X <- NULL
 ```
 
 ## 3) Build a model using the training set 
-```{r, echo=TRUE}
+```{r training, echo=TRUE}
 
 ctrl <- trainControl(number = 3,
                      method = "repeatedcv")
@@ -197,7 +200,7 @@ imp <- varimp$importance
 plot(varimp)
 ```
 ## 4) Evaluate the model using the test set 
-```{r, echo=TRUE}
+```{r eval, echo=TRUE}
 plsClasses <- predict(xgbModel, newdata = test)
 str(plsClasses)
 
