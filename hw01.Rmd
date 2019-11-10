@@ -21,9 +21,9 @@ library("dplyr")
 
 ## What does it mean for a function to be non-convex?
 
-# A function is non-convex (or concave) if it is a continuous function whose value at the midpoint of every interval in its domain does not exceed the arithmetic mean of its values at the ends of the interval.
+A function is non-convex (or concave) if it is a continuous function whose value at the midpoint of every interval in its domain does not exceed the arithmetic mean of its values at the ends of the interval.
 
-## Task 1: Maximization of a non-convex function.
+# Task 1: Maximization of a non-convex function.
 # 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).
 ```{r func, echo=TRUE}
 f <- function(x, y)  {
@@ -96,34 +96,34 @@ for (i in 1:12) {
 points(trans3d(x = history_x, y =history_y , z = f(history_x, history_y), pmat = res))
 }
 ```
-## 4. Discuss the results. 
-## How does performance vary when you are increasing the number of iterations?
-# The performance is slowed down because the GA reaches the maximum solution much before we run all of the iterations, thus
-# increasing the number would only slow down the search without providing any significant benefit.
+# 4. Discuss the results. 
+# How does performance vary when you are increasing the number of iterations?
+The performance is slowed down because the GA reaches the maximum solution much before we run all of the iterations, thus
+increasing the number would only slow down the search without providing any significant benefit.
 
-## What about population size?
-# Increasing the population size actually speeds up the process but there's a diminishing return on how much we can increase the
-# population. After a certain amount (depending on the problem) increasing it just slows down the GA.
+# What about population size?
+Increasing the population size actually speeds up the process but there's a diminishing return on how much we can increase the
+population. After a certain amount (depending on the problem) increasing it just slows down the GA.
 
-## Explain the difference between local and global maxima.
-# A local maxima is the biggest element for one given subset of the whole function. There can still be other values greater than
-# this one, outside ofthe range of the subset. The global maximum is the largest overall value of the function.
+# Explain the difference between local and global maxima.
+A local maxima is the biggest element for one given subset of the whole function. There can still be other values greater than
+this one, outside ofthe range of the subset. The global maximum is the largest overall value of the function.
 
 
-## Task 2: Genetic feature selection
-# Work plan:
-# 1) Read in the data
-# 2) Split the data into training and test sets
-# 3) Build a model using the training set
-# 4) Evaluate the model using the test set
+# Task 2: Genetic feature selection
+Work plan:
+1) Read in the data
+2) Split the data into training and test sets
+3) Build a model using the training set
+4) Evaluate the model using the test set
 
-## 1) Read in the dataset 
+# 1) Read in the dataset 
 ```{r import, echo=F}
 genes <- DLBCL
 target <- genes$class
 ```
 
-## 2) Split the data into training and test sets
+# 2) Split the data into training and test sets
 ```{r splitting, echo=TRUE}
 splited <- createDataPartition(
   y = target,
@@ -138,7 +138,7 @@ learn$X <- NULL
 test$X <- NULL
 ```
 
-## 3) Build a model using the training set 
+# 3) Build a model using the training set 
 ```{r training, echo=TRUE}
 
 ctrl <- trainControl(number = 3,
@@ -194,7 +194,7 @@ imp <- varimp$importance
 
 plot(varimp, top = 15)
 ```
-## 4) Evaluate the model using the test set 
+# 4) Evaluate the model using the test set 
 ```{r eval, echo=TRUE}
 plsClasses <- predict(xgbModel, newdata = test)
 str(plsClasses)
@@ -205,22 +205,22 @@ head(plsProbs)
 confusionMatrix(data = plsClasses, test$class)
 ```
 
-## Discussing the results 
-## Was the feature selection successful? Report how many features were needed for the final performance. Plot the trace of
-## evolution and comment on the change of fitness through generations.
+# Discussing the results 
+# Was the feature selection successful? Report how many features were needed for the final performance. Plot the trace of
+# evolution and comment on the change of fitness through generations.
 
-## Suggest how to improve the selection process.
-# We could use variables thar have a high influence of the class instead of selecting random ones
+# Suggest how to improve the selection process.
+We could use variables thar have a high influence of the class instead of selecting random ones
 
-## The procedure might overfit the data set. How would you prevent it?
-# We would just run different tests with different ammounts of features and test cases and then we would test the results
-# to see which quantity is actually the best one
+# The procedure might overfit the data set. How would you prevent it?
+We would just run different tests with different ammounts of features and test cases and then we would test the results
+to see which quantity is actually the best one
 
-## What are some of the key properties of the fitness function?
-# The fitness function represent the number of successes while testing our classifier. The more successes we have the more our function fits the model
+# What are some of the key properties of the fitness function?
+The fitness function represent the number of successes while testing our classifier. The more successes we have the more our function fits the model
 
-## Compare the final result (set of features) with the same number of features, that correlate the most with the target variable. ## What do you observe?
-# We observe nothing
+# Compare the final result (set of features) with the same number of features, that correlate the most with the target variable. ## What do you observe?
+We observe nothing
 
 
 
