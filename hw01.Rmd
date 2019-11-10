@@ -195,7 +195,7 @@ summary(models_compare)
 varimp <- varImp(RFModel)
 imp <- varimp$importance
 
-plot(varimp)
+plot(varimp, top = 10)
 ```
 ## 4) Evaluate the model using the test set 
 ```{r, echo=TRUE}
@@ -208,7 +208,15 @@ head(plsProbs)
 confusionMatrix(data = plsClasses, test$class)
 
 # • Fitness must take into account both the number of features, as well as the classifier’s performance
-results <- rfe(train[,1:8], target, sizes=c(1:8), rfeControl=control)
+control <- rfeControl(functions = rfFuncs,
+                   method = "repeatedcv",
+                   number = 3,
+                   verbose = FALSE)
+outcomeName <- 'class'
+predictors <- names(learn)[!names(learn) %in% outcomeName]
+results <- rfe(learn[,predictors], learn[,outcomeName], rfeControl=control)
+results
+
 predictors(results)
 plot(results, type=c("g", "o"))
 
