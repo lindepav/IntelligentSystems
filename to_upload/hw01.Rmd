@@ -9,7 +9,7 @@ output:
 
 ## Installing packages
 
-```{r lib, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r lib, echo=FALSE}
 library("plot3D")
 library(caret)
 
@@ -52,7 +52,7 @@ crossovers = c("ga_spCrossover",
 
 ```
 
-```{r ga, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+```{r ga, echo=TRUE}
 results = c()
 idx <- 0
 name <- 0
@@ -73,7 +73,7 @@ for (i in 1:length(crossovers)) {
 }
 ```
 
-```{r summary, echo = T, message=FALSE, warning=FALSE, include=FALSE}
+```{r summary, echo = T}
 solution = results[idx]
 plot(GA)
 summary(GA)
@@ -83,7 +83,7 @@ max_z = as.vector(f(GA@solution[,1], GA@solution[,2]))
 {res <- persp(x = x, y = x, z = z,theta = 30, phi = 25)
 points(trans3d(max_x, max_y, max_z, pmat=res))}
 ```
-```{r history, echo=T, message=FALSE, warning=FALSE, include=FALSE}
+```{r history, echo=T}
 
 # BONUS: Plot the trace of evolution
 history_x = c()
