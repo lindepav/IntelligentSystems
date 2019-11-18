@@ -86,7 +86,7 @@ max_z = as.vector(f(bestGA@solution[,1], bestGA@solution[,2]))
 {res <- persp(x = x, y = x, z = z,theta = 30, phi = 25, col = "lightblue")
 points(trans3d(max_x, max_y, max_z, pmat=res), col="red", pch = 10)}
 ```
-```{r history, echo=T, warning=FALSE}
+```{r history, echo=F}
 
 # BONUS: Plot the trace of evolution
 history_x = c()
@@ -125,7 +125,7 @@ Increasing the population size actually speeds up the process but there's a dimi
 time = c()
 size = c()
 ```
-```{r gen, echo=TRUE}
+```{r gen, echo=F}
 for (i in 1:50) {
     ptm <- proc.time()
     GA3 <- ga(type = "real-valued", 
@@ -156,7 +156,7 @@ target <- genes$class
 splited <- createDataPartition(
   y = target,
   p = .8,
-  list = FALSE
+  list = FALSE,
 )
 
 learn = genes[ splited, ]
@@ -164,6 +164,10 @@ test = genes[-splited, ]
 
 learn$X <- NULL
 test$X <- NULL
+
+learn = sample(learn)
+learn = learn[1:1000]
+length(learn)
 ```
 
 # 3) Build a model using the training set 
@@ -217,7 +221,7 @@ models_compare <- resamples(list(RF=RFModel, XGBDART=xgbModel, PLS=PLSModel, SVM
 
 summary(models_compare)
 
-varimp <- varImp(RFModel)
+varimp <- varImp(PLSModel)
 imp <- varimp$importance
 
 plot(varimp, top = 15)
@@ -228,7 +232,7 @@ plsClasses <- predict(xgbModel, newdata = test)
 str(plsClasses)
 
 plsProbs <- predict(xgbModel, newdata = test, type = "prob")
-head(plsProbs)
+plsProbs
 
 confusionMatrix(data = plsClasses, test$class)
 ```
