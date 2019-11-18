@@ -1,0 +1,470 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf610
+{\fonttbl\f0\fnil\fcharset0 HelveticaNeue-Medium;\f1\fmodern\fcharset0 Courier;\f2\fnil\fcharset0 HelveticaNeue;
+\f3\fnil\fcharset0 Monaco;}
+{\colortbl;\red255\green255\blue255;\red38\green38\blue38;\red255\green255\blue255;\red242\green242\blue242;
+}
+{\*\expandedcolortbl;;\cssrgb\c20000\c20000\c20000;\cssrgb\c100000\c100000\c100000;\cssrgb\c96078\c96078\c96078;
+}
+{\info
+{\title Assigment1}
+{\author Pavel Linder, Nikita Brancatisano}}\paperw12240\paperh15840\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sl820\sa200\partightenfactor0
+
+\f0\fs76 \cf2 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Assigment1\
+\pard\pardeftab720\sl380\sa200\partightenfactor0
+
+\fs36 \cf2 Pavel Linder, Nikita Brancatisano\
+11/6/2019\
+
+\f1\fs26 \cb3 \
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\f0\fs48 \cf2 \cb1 What does it mean for a function to be non-convex?\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 A function is non-convex (or concave) if it is a continuous function whose value at the midpoint of every interval in its domain does not exceed the arithmetic mean of its values at the ends of the interval.\
+\pard\pardeftab720\sl740\sa200\partightenfactor0
+
+\f0\fs68 \cf2 Task 1: Maximization of a non-convex function.\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\fs60 \cf2 1. Code a method f(x, y) that computes a value z, given an input tuple (x, y).\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 f <- function(x, y)  \{\
+  z <- ((1 - x)^2) + (exp(1) * (y - (x^2))^2)\
+\}\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\f0\fs60 \cf2 \cb1 2. Code a method that visualizes the Rosenbrock function in 3D\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 x <- y <- seq(-1, 1, length= 20)\
+z <- outer(x, y, f)\
+z[is.na(z)] <- 1 # change non-defined elements to 1\
+persp(x, y, z, theta = 30, phi = 20, col = "lightblue")\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\f0\fs60 \cf2 3. Code a genetic algorithm, that attempts to find the global maximum of this function.\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 Here, we tried several crossover method and then selected the best one.\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 #We select a list of crossovers\
+crossovers = c("ga_spCrossover", \
+              "gabin_spCrossover", "gabin_uCrossover",\
+              "gareal_spCrossover", "gareal_waCrossover", "gareal_laCrossover", "gareal_blxCrossover", "gareal_laplaceCrossover",\
+              "gaperm_cxCrossover", "gaperm_pmxCrossover", "gaperm_pmxCrossover"\
+        )\
+results = c()\
+idx <- 0\
+name <- 0\
+best <- 0\
+#We train them all and then we select the best\
+for (i in 1:length(crossovers)) \{\
+  GA <- ga(type = "real-valued", \
+           fitness =  function(x) f(x[1], x[2]),\
+           lower = c(-1, -1), upper = c(1, 1), \
+           popSize = 50, maxiter = 1000, run = 100,\
+           crossover = crossovers[i]\
+           )\
+  if (best < GA@fitnessValue) \{\
+    idx <- i\
+    best <- GA@fitnessValue\
+    bestGA <- GA\
+  \}\
+  results[i] <- GA@solution\
+\}\
+solution = results[idx]\
+best_crossover = crossovers[idx]\
+best_crossover\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ## [1] "gareal_laplaceCrossover"\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 plot(bestGA)\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 1__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 summary(bestGA)\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ## 
+\f3 \uc0\u9472 \u9472 
+\f1  Genetic Algorithm 
+\f3 \uc0\u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 
+\f1  \
+## \
+## GA settings: \
+## Type                  =  real-valued \
+## Population size       =  50 \
+## Number of generations =  1000 \
+## Elitism               =  2 \
+## Crossover probability =  0.8 \
+## Mutation probability  =  0.1 \
+## Search domain = \
+##       x1 x2\
+## lower -1 -1\
+## upper  1  1\
+## \
+## GA results: \
+## Iterations             = 114 \
+## Fitness function value = 14.87313 \
+## Solution = \
+##      x1 x2\
+## [1,] -1 -1\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 max_x = as.vector(bestGA@solution[,1])\
+max_y = as.vector(bestGA@solution[,2])\
+max_z = as.vector(f(bestGA@solution[,1], bestGA@solution[,2]))\
+\{res <- persp(x = x, y = x, z = z,theta = 30, phi = 25, col = "lightblue")\
+points(trans3d(max_x, max_y, max_z, pmat=res), col="red", pch = 10)\}\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 2__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬} {{\NeXTGraphic 3__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\f0\fs60 \cf2 4. Discuss the results.\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\fs48 \cf2 How does performance vary when you are increasing the number of iterations?\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 The performance is slowed down because the GA reaches the maximum solution before we run all of the iterations, thus increasing the number would only slow down the search without providing any significant benefit.\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 plot(bestGA)\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 1__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\f0\fs48 \cf2 What about population size?\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 Increasing the population size actually speeds up the process but there\'92s a diminishing return on how much we can increase the population. With small population the algorithm also finds only local maximas. After a certain amount (depending on the problem) increasing it just slows down the GA.\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 time = c()\
+size = c()\
+plot(size, time)\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 4__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬} ### Explain the difference between local and global maxima. A local maxima is the biggest element for one given subset of the whole function. There can still be other values greater than this one, outside of the range of the subset. The global maximum is the largest overall value of the function (on the whole domain of the function).\
+\pard\pardeftab720\sl740\sa200\partightenfactor0
+
+\f0\fs68 \cf2 Task 2: Genetic feature selection\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\fs60 \cf2 1) Read in the dataset\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 genes <- read.csv("DLBCL.csv")\
+target <- genes$class\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\f0\fs60 \cf2 \cb1 2) Split the data into training and test sets\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 splited <- createDataPartition(\
+  y = target,\
+  p = .8,\
+  list = FALSE,\
+)\
+\
+learn = genes[ splited, ]\
+test = genes[-splited, ]\
+\
+learn$X <- NULL\
+test$X <- NULL\
+\
+learn = sample(learn)\
+learn = learn[1:1000]\
+length(learn)\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ## [1] 1000\
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\f0\fs60 \cf2 \cb1 3) Build a model using the training set\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 ctrl <- trainControl(number = 3,\
+                     method = "repeatedcv")\
+                     \
+PLSModel <- train(\
+  class ~ .,\
+  data = learn,\
+  method = "pls",\
+  preProc = c("center", "scale"),\
+  trControl = ctrl,\
+  tuneLenght = 1000\
+)\
+\
+           \
+\
+RFModel <- train(\
+  class ~ .,   \
+  data = learn,\
+  method = "rf",\
+  preProc = c("center", "scale"),\
+  trControl = ctrl,\
+  tuneLenght = 1000\
+)\
+\
+           \
+\
+xgbModel <- train(\
+  class ~ .,   \
+  data = learn,\
+  method = "xgbDART",\
+  preProc = c("center", "scale"),\
+  trControl = ctrl,\
+  tuneLenght = 100\
+)\
+\
+\
+SVMModel <- train(\
+  class ~ .,   \
+  data = learn,\
+  method = "svmRadial",\
+  preProc = c("center", "scale"),\
+  trControl = ctrl,\
+  tuneLenght = 1000\
+)\
+\
+models_compare <- resamples(list(RF=RFModel, XGBDART=xgbModel, PLS=PLSModel, SVM=SVMModel))\
+\
+summary(models_compare)\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ## \
+## Call:\
+## summary.resamples(object = models_compare)\
+## \
+## Models: RF, XGBDART, PLS, SVM \
+## Number of resamples: 3 \
+## \
+## Accuracy \
+##              Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's\
+## RF      0.7142857 0.7619048 0.8095238 0.7936508 0.8333333 0.8571429    0\
+## XGBDART 0.9000000 0.9045455 0.9090909 0.9204906 0.9307359 0.9523810    0\
+## PLS     0.9047619 0.9047619 0.9047619 0.9206349 0.9285714 0.9523810    0\
+## SVM     0.7272727 0.7386364 0.7500000 0.7463925 0.7559524 0.7619048    0\
+## \
+## Kappa \
+##               Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's\
+## RF      -0.0862069 0.1652299 0.4166667 0.3025470 0.4969239 0.5771812    0\
+## XGBDART  0.6923077 0.7182469 0.7441860 0.7651847 0.8016232 0.8590604    0\
+## PLS      0.7375000 0.7391204 0.7407407 0.7791004 0.7999006 0.8590604    0\
+## SVM      0.0000000 0.0000000 0.0000000 0.0000000 0.0000000 0.0000000    0\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 plot(varimp, top = 15)\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 5__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬} ``` ## 4) Evaluate the model using the test set\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 plsClasses <- predict(xgbModel, newdata = test)\
+str(plsClasses)\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ##  Factor w/ 2 levels "DLBCL","FL": 1 1 1 1 1 1 1 1 1 1 ...\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 plsProbs <- predict(xgbModel, newdata = test, type = "prob")\
+plsProbs\
+\pard\pardeftab720\sl400\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 \
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 confusionMatrix(data = plsClasses, test$class)\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ## Confusion Matrix and Statistics\
+## \
+##           Reference\
+## Prediction DLBCL FL\
+##      DLBCL    11  0\
+##      FL        0  3\
+##                                      \
+##                Accuracy : 1          \
+##                  95% CI : (0.7684, 1)\
+##     No Information Rate : 0.7857     \
+##     P-Value [Acc > NIR] : 0.03417    \
+##                                      \
+##                   Kappa : 1          \
+##                                      \
+##  Mcnemar's Test P-Value : NA         \
+##                                      \
+##             Sensitivity : 1.0000     \
+##             Specificity : 1.0000     \
+##          Pos Pred Value : 1.0000     \
+##          Neg Pred Value : 1.0000     \
+##              Prevalence : 0.7857     \
+##          Detection Rate : 0.7857     \
+##    Detection Prevalence : 0.7857     \
+##       Balanced Accuracy : 1.0000     \
+##                                      \
+##        'Positive' Class : DLBCL      \
+## \
+\pard\pardeftab720\sl660\sa200\partightenfactor0
+
+\f0\fs60 \cf2 \cb1 5) Discussing the results\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\fs48 \cf2 Was the feature selection successful? Report how many features were needed for the final performance. Plot the trace of evolution and comment on the change of fitness through generations.\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 From the plot we can see that the accuracy within the subsets with more than 30 features is not increasing anymore.\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 control <- rfeControl(functions = rfFuncs,\
+                   method = "repeatedcv",\
+                   number = 3,\
+                   verbose = FALSE)\
+outcomeName <- 'class'\
+predictors <- names(learn)[!names(learn) %in% outcomeName]\
+results <- rfe(learn[,predictors], learn[,outcomeName], rfeControl=control, \
+               sizes = c(1, 2, 4, 6, 8, 12, 16, 20, 32, 64, 128, 256, 512, 1000))\
+results\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ## \
+## Recursive feature selection\
+## \
+## Outer resampling method: Cross-Validated (3 fold, repeated 1 times) \
+## \
+## Resampling performance over subset size:\
+## \
+##  Variables Accuracy   Kappa AccuracySD KappaSD Selected\
+##          1   0.6662 0.07641    0.08323 0.05543         \
+##          2   0.7463 0.26663    0.09640 0.35270         \
+##          4   0.7607 0.27837    0.13062 0.46963         \
+##          6   0.8380 0.53011    0.11949 0.39267         \
+##          8   0.7623 0.29743    0.04248 0.17201         \
+##         12   0.8251 0.47908    0.02919 0.13332         \
+##         16   0.8403 0.55026    0.03502 0.14906         \
+##         20   0.8410 0.52497    0.05598 0.21232        *\
+##         32   0.8107 0.37404    0.08923 0.36886         \
+##         64   0.7932 0.31804    0.13851 0.48577         \
+##        128   0.7781 0.24795    0.06936 0.29705         \
+##        256   0.7940 0.30139    0.09658 0.38677         \
+##        512   0.8100 0.35842    0.04308 0.19093         \
+##        999   0.8100 0.33401    0.04308 0.14906         \
+## \
+## The top 5 variables (out of 20):\
+##    atHG1996.HT2044_at, atM16336_s_at, atU30827_s_at, atHG4490.HT4876_f_at, atU16812_s_at\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 predictors(results)\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ##  [1] "atHG1996.HT2044_at"   "atM16336_s_at"        "atU30827_s_at"       \
+##  [4] "atHG4490.HT4876_f_at" "atU16812_s_at"        "atX92493_s_at"       \
+##  [7] "atX13100_s_at"        "atU87593_f_at"        "atX16699_at"         \
+## [10] "atS81661_s_at"        "atS80905_f_at"        "atX67491_f_at"       \
+## [13] "atM29932_s_at"        "atU59831_rna1_s_at"   "atM34376_s_at"       \
+## [16] "atU22178_s_at"        "atU14187_at"          "atU20734_s_at"       \
+## [19] "atX12530_s_at"        "atU01337_at"\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 plot(results)\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 6__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\f0\fs48 \cf2 Suggest how to improve the selection process.\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 We could use variables that have a high influence of the class instead of selecting random ones.\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\f0\fs48 \cf2 The procedure might overfit the data set. How would you prevent it?\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 We would just run different tests with different ammounts of features and test cases and then we would test the results to see which quantity is actually the best one\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\f0\fs48 \cf2 What are some of the key properties of the fitness function?\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 The fitness function represent the number of successes while testing our classifier. The more successes we have the more our function fits the model\
+\pard\pardeftab720\sl520\sa200\partightenfactor0
+
+\f0\fs48 \cf2 Compare the final result (set of features) with the same number of features, that correlate the most with the target variable\
+\pard\pardeftab720\sl360\partightenfactor0
+
+\f1\fs26 \cf2 \cb4 #result <- genes[, predictors(results)] \
+result <- genes[, results$optVariables]\
+topCor <- data.frame(imp)\
+topCor$Vars <- row.names(topCor)\
+topCor <- topCor[order(-topCor$Overall),][1:20,]$Vars\
+cors <- genes[, topCor]\
+correlation <- head(round(cor(result, cors),2))\
+\
+correlation\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb3 ##                      atU38227_s_at atX67491_f_at atU14187_at\
+## atHG1996.HT2044_at            0.68          0.18        0.80\
+## atM16336_s_at                 0.56          0.39        0.52\
+## atU30827_s_at                 0.61          0.30        0.77\
+## atHG4490.HT4876_f_at          0.08         -0.24       -0.10\
+## atU16812_s_at                 0.16         -0.09       -0.04\
+## atX92493_s_at                 0.15          0.03        0.02\
+##                      atHG1996.HT2044_at atHG2917.HT3061_f_at atJ00212_f_at\
+## atHG1996.HT2044_at                 1.00                 0.06         -0.38\
+## atM16336_s_at                      0.65                 0.14         -0.43\
+## atU30827_s_at                      0.73                 0.07         -0.54\
+## atHG4490.HT4876_f_at              -0.18                 0.02          0.14\
+## atU16812_s_at                     -0.14                 0.43         -0.43\
+## atX92493_s_at                      0.09                -0.25         -0.19\
+##                      atM34376_s_at atU45255_s_at atM16336_s_at\
+## atHG1996.HT2044_at           -0.14          0.41          0.65\
+## atM16336_s_at                -0.29          0.40          1.00\
+## atU30827_s_at                -0.26          0.50          0.69\
+## atHG4490.HT4876_f_at         -0.10         -0.05         -0.20\
+## atU16812_s_at                -0.15         -0.01         -0.10\
+## atX92493_s_at                -0.04          0.08          0.16\
+##                      atHG3635.HT3845_f_at atM86873_s_at\
+## atHG1996.HT2044_at                   0.06          0.22\
+## atM16336_s_at                        0.18          0.42\
+## atU30827_s_at                       -0.01          0.33\
+## atHG4490.HT4876_f_at                 0.03         -0.25\
+## atU16812_s_at                        0.14          0.31\
+## atX92493_s_at                       -0.16          0.06\
+##                      atHG4236.HT4506_f_at atS80905_f_at atL17075_s_at\
+## atHG1996.HT2044_at                   0.04         -0.32          0.15\
+## atM16336_s_at                        0.14         -0.06          0.07\
+## atU30827_s_at                        0.12         -0.20          0.15\
+## atHG4490.HT4876_f_at                 0.07          0.02          0.32\
+## atU16812_s_at                        0.42          0.37          0.49\
+## atX92493_s_at                        0.35         -0.22         -0.05\
+##                      atHG2510.HT2606_at atU16812_s_at atZ29066_s_at\
+## atHG1996.HT2044_at                 0.06         -0.14          0.09\
+## atM16336_s_at                     -0.14         -0.10         -0.02\
+## atU30827_s_at                     -0.09          0.02          0.07\
+## atHG4490.HT4876_f_at               0.29          0.35          0.40\
+## atU16812_s_at                     -0.07          1.00          0.59\
+## atX92493_s_at                     -0.36         -0.12         -0.14\
+##                      atX83492_s_at atHG3565.HT3768_at atX87344_cds10_r_at\
+## atHG1996.HT2044_at           -0.07              -0.03                0.18\
+## atM16336_s_at                 0.10               0.03                0.36\
+## atU30827_s_at                -0.05               0.06                0.34\
+## atHG4490.HT4876_f_at          0.12               0.26               -0.25\
+## atU16812_s_at                -0.08               0.26                0.24\
+## atX92493_s_at                 0.01              -0.16                0.18\
+\pard\pardeftab720\sl360\partightenfactor0
+\cf2 \cb4 corrplot(correlation, method="color")\
+\pard\pardeftab720\sl400\sa200\partightenfactor0
+
+\f2\fs28 \cf2 \cb1 {{\NeXTGraphic 7__#$!@%!#__unknown.png \width26880 \height19200 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+}
