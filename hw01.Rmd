@@ -9,7 +9,7 @@ output:
 
 ## Installing packages
 
-```{r lib, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r lib, echo=FALSE, warning=FALSE}
 library("plot3D")
 library(caret)
 
@@ -37,7 +37,7 @@ f <- function(x, y)  {
 x <- y <- seq(-1, 1, length= 20)
 z <- outer(x, y, f)
 z[is.na(z)] <- 1 # change non-defined elements to 1
-persp(x, y, z, theta = 30, phi = 20)
+persp(x, y, z, theta = 30, phi = 20, col = "lightblue")
 ```
 
 # 3. Code a genetic algorithm, that attempts to find the global maximum of this function. 
@@ -52,7 +52,7 @@ crossovers = c("ga_spCrossover",
 
 ```
 
-```{r ga, echo=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+```{r ga, echo=TRUE, warning=FALSE}
 results = c()
 idx <- 0
 name <- 0
@@ -68,22 +68,25 @@ for (i in 1:length(crossovers)) {
   if (best < GA@fitnessValue) {
     idx <- i
     best <- GA@fitnessValue
+    bestGA <- GA
   }
   results[i] <- GA@solution
 }
 ```
 
-```{r summary, echo = T, message=FALSE, warning=FALSE, include=FALSE}
+```{r summary, echo = T, warning=FALSE}
 solution = results[idx]
-plot(GA)
-summary(GA)
-max_x = as.vector(GA@solution[,1])
-max_y = as.vector(GA@solution[,2])
-max_z = as.vector(f(GA@solution[,1], GA@solution[,2]))
-{res <- persp(x = x, y = x, z = z,theta = 30, phi = 25)
-points(trans3d(max_x, max_y, max_z, pmat=res))}
+best_crossover = crossovers[idx]
+best_crossover
+plot(bestGA)
+summary(bestGA)
+max_x = as.vector(bestGA@solution[,1])
+max_y = as.vector(bestGA@solution[,2])
+max_z = as.vector(f(bestGA@solution[,1], bestGA@solution[,2]))
+{res <- persp(x = x, y = x, z = z,theta = 30, phi = 25, col = "lightblue")
+points(trans3d(max_x, max_y, max_z, pmat=res), col="red", pch = 10)}
 ```
-```{r history, echo=T, message=FALSE, warning=FALSE, include=FALSE}
+```{r history, echo=T, warning=FALSE}
 
 # BONUS: Plot the trace of evolution
 history_x = c()
@@ -96,11 +99,12 @@ for (i in 1:12) {
               popSize = 50, maxiter = 50*i, run = 100)
     history_x[i] <- GA2@solution[,1]
     history_y[i] <- GA2@solution[,2]
-    
 }	
 
-{res2 <- persp(x=x, y = y, z = z,theta = 30, phi = 25)
+{res2 <- persp(x=x, y = y, z = z,theta = 30, phi = 25, col = "lightblue")
 points(trans3d(x = history_x, y =history_y , z = f(history_x, history_y), pmat = res))
+points(trans3d(x = history_x[1], y =history_y[1] , z = f(history_x[1], history_y[1]), pmat = res), col = "green", pch = 10)
+points(trans3d(x = history_x[12], y =history_y[12] , z = f(history_x[12], history_y[12]), pmat = res), col = "red", pch = 10)
 }
 ```
 
@@ -115,7 +119,7 @@ plot(GA2)
 ```
 
 # What about population size?
-Increasing the population size actually speeds up the process but there's a diminishing return on how much we can increase the population. After a certain amount (depending on the problem) increasing it just slows down the GA.
+Increasing the population size actually speeds up the process but there's a diminishing return on how much we can increase the population. With small population the algorithm also finds only local maximas. After a certain amount (depending on the problem) increasing it just slows down the GA.
 ```{r size, echo=TRUE}
 
 time = c()
@@ -127,17 +131,17 @@ for (i in 1:50) {
     GA3 <- ga(type = "real-valued", 
               fitness =  function(x) f(x[1], x[2]),
               lower = c(-1, -1), upper = c(1, 1), 
-              popSize = i*5, maxiter = 30, run = 100)
-    time[i] <- proc.time() - ptm
-    size[i] = i*5
+              popSize = 10+i*5, maxiter = 50, run = 100)
+    elapsed = proc.time() - ptm
+    time[i] <- elapsed[3]
+    size[i] <- 10+i*5
 }
 ```
 ```{r genplot, echo=TRUE}
 plot(size, time)
 ```
 # Explain the difference between local and global maxima.
-A local maxima is the biggest element for one given subset of the whole function. There can still be other values greater than
-this one, outside ofthe range of the subset. The global maximum is the largest overall value of the function.
+A local maxima is the biggest element for one given subset of the whole function. There can still be other values greater than this one, outside of the range of the subset. The global maximum is the largest overall value of the function (on the whole domain of the function).
 
 
 ## Task 2: Genetic feature selection
