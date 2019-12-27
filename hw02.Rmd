@@ -46,7 +46,7 @@ train$text_a[1:3]
 ```
 
 # 2. Exploration
-### Plot the frequency of words (without stemmization)
+### I. Plot the frequency of words (without stemmization)
 ```{r frequency1, echo=TRUE}
 corpus <- Corpus(VectorSource(train$text_a)) # turn into corpus
 tdm <- TermDocumentMatrix(corpus)
@@ -76,5 +76,39 @@ qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencie
 
 ```
 
-### Plot the frequency of words (with stemmization)
+### I. Plot the frequency of words (with stemmization)
+```{r stemmization1, echo=TRUE}
+stemmed <- stemDocument(train$text_a, language = "english")
+corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
+```
+```{r freq2, echo=FALSE}
+tdm2 <- TermDocumentMatrix(corpus2)
+wordFreq <- sort(rowSums(as.matrix(tdm2)), decreasing=TRUE)
+mostFreq <- subset(wordFreq, wordFreq >= 50)
+```
+```{r stemmization2, echo=TRUE}
+qplot(seq(length(mostFreq)),sort(mostFreq), xlab = "index", ylab = "Frequency")
 
+length(wordFreq)
+
+length(wordFreq[wordFreq<10])
+
+length(wordFreq[wordFreq<5])
+
+length(wordFreq[wordFreq==1])
+```
+```{r freq3, echo=FALSE}
+freq <- sort(unique(wordFreq), decreasing=FALSE)
+occ <- vector()
+for (i in 1:length(freq)) {
+  occ[i] <- length(wordFreq[wordFreq == freq[i]])
+}
+```
+```{r stemmization3, echo=TRUE}
+qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencies")
+```
+
+## II. Perform a clustering 
+```{r cluster, echo=TRUE}
+
+```
