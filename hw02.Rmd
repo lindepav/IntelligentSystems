@@ -46,4 +46,35 @@ train$text_a[1:3]
 ```
 
 # 2. Exploration
-## Plot the frequency of words
+### Plot the frequency of words (without stemmization)
+```{r frequency1, echo=TRUE}
+corpus <- Corpus(VectorSource(train$text_a)) # turn into corpus
+tdm <- TermDocumentMatrix(corpus)
+
+wordFreq <- sort(rowSums(as.matrix(tdm)), decreasing=TRUE)
+qplot(seq(length(wordFreq)),sort(wordFreq), xlab = "index", ylab = "Frequency")
+
+findFreqTerms(tdm, lowfreq=50)
+mostFreq <- subset(wordFreq, wordFreq >= 50)
+qplot(seq(length(mostFreq)),sort(mostFreq), xlab = "index", ylab = "Frequency")
+
+length(wordFreq)
+
+length(wordFreq[wordFreq<10])
+
+length(wordFreq[wordFreq<5])
+
+length(wordFreq[wordFreq==1])
+
+
+freq <- sort(unique(wordFreq), decreasing=FALSE)
+occ <- vector()
+for (i in 1:length(freq)) {
+  occ[i] <- length(wordFreq[wordFreq == freq[i]])
+}
+qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencies")
+
+```
+
+### Plot the frequency of words (with stemmization)
+
