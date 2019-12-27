@@ -1,5 +1,5 @@
 ---
-title: "hw02"
+title: "Assigment 2"
 author: "Pavel Linder, Nikita Brancatisano"
 date: "12/26/2019"
 output: pdf_document
@@ -8,23 +8,42 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r libraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
+#library(qdap) # qualitative data analysis package (it masks %>%)
+library(stringr)
+library(tm) # framework for text mining; it loads NLP package
+library(ggplot2)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+## 0. Read input
+```{r import, echo=TRUE}
+train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
+length(which(!complete.cases(train)))
+train$text_a[1:3]
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# 1. Cleaning data
+## Remove punctuation and stopwords
+```{r punctuation, echo=TRUE}
+train$text_a = as.character(train$text_a)
+train$text_a = tm::removePunctuation(train$text_a)
+train$text_a = tm::removeWords(x = train$text_a, stopwords(kind = "SMART"))
+train$text_a = tm::stripWhitespace(train$text_a)
+train$text_a[1:3]
+```
+
+## Anonymize proper nouns
+```{r anonymize, echo=TRUE}
+
+```
+
+## Remove unknown symbols (non UTF-8 characters)
+```{r symbols, echo=TRUE}
+train$text_a = str_replace_all(train$text_a, "[^[:alnum:],[:blank:]/\\-]", "")
+train$text_a[1:3]
+```
+
+# 2. Exploration
+## Plot the frequency of words
