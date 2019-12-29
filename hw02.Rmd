@@ -9,11 +9,19 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r libraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+install.packages('SnowballC')
+install.packages('tsne')
+install.packages('factoextra')
+
+
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
 #library(qdap) # qualitative data analysis package (it masks %>%)
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
 library(ggplot2)
+library(SnowballC)
+library(tsne)
+library(factoextra)
 ```
 
 ## 0. Read input
@@ -118,15 +126,27 @@ tfidf <- tm::removeSparseTerms(tfidf, 0.7)
 k <- c(2, 4, 8, 16)
 for (j in 1:4) {
   kmeansResult <- kmeans(tfidf, k[j]) 
-  
   # Find the most popular words in every cluster
   cat("for k = ", k[j], ":\n")
   for (i in 1:k[j]) {
     s <- sort(kmeansResult$centers[i,], decreasing=TRUE)
-    
     cat(names(s)[1:10], "\n")
   }
   cat("\n")
 }
 
 ```
+
+##Here i'm doing a single cluster to test the visualization
+tfidf <- as.matrix(tm::DocumentTermMatrix(corpus), control = list(weighting=weightTfIdf)) 
+tfidf <- tm::removeSparseTerms(tfidf, 0.7) 
+
+kmeansResult <- kmeans(tfidf, 2) 
+biplot(kmeansResult)
+# Find the most popular words in every cluster
+for (i in 1:2) {
+  s <- sort(kmeansResult$centers[i,], decreasing=TRUE)
+  cat(names(s)[1:10], "\n")
+}
+fviz_cluster(kmeansResult, data = df)
+
