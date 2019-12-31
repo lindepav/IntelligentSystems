@@ -14,6 +14,7 @@ library(gtools) # if problems calling library, install.packages("gtools", depend
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
 library(ggplot2)
+library(cluster)
 ```
 
 ## 0. Read input
@@ -41,7 +42,6 @@ train$text_a[1:3]
 
 ## Remove unknown symbols (non UTF-8 characters)
 ```{r symbols, echo=TRUE}
-#train$text_a = str_replace_all(train$text_a, "[^[:alnum:],[:blank:]/\\-]", "")
 train$text_a <- iconv(train$text_a, to='UTF-8', sub='byte')
 train$text_a[1:3]
 ```
@@ -111,22 +111,58 @@ qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencie
 
 ## II. Perform a clustering on the vectorized document space
 We will use Weighted TF-IDF as a way to represent the document space:
-```{r cluster, echo=TRUE}
-tfidf <- as.matrix(tm::DocumentTermMatrix(corpus), control = list(weighting=weightTfIdf)) 
-tfidf <- tm::removeSparseTerms(tfidf, 0.7) 
+```{r cluster1, echo=TRUE}
+tdm <- tm::DocumentTermMatrix(corpus) 
+tdm.tfidf <- tm::weightTfIdf(tdm)
+tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidf.matrix <- as.matrix(tdm.tfidf) 
+```
+Afterwards, we perform kmeans algorithm to cluster in {2,4,8,16} classes.
+```{r cluster2, echo=TRUE}
+cluster2 <- kmeans(tfidf.matrix, centers=2)
+cluster4 <- kmeans(tfidf.matrix, centers=4)
+cluster8 <- kmeans(tfidf.matrix, centers=8)
+cluster16 <- kmeans(tfidf.matrix, centers=16)
 
-k <- c(2, 4, 8, 16)
-for (j in 1:4) {
-  kmeansResult <- kmeans(tfidf, k[j]) 
-  
-  # Find the most popular words in every cluster
-  cat("for k = ", k[j], ":\n")
-  for (i in 1:k[j]) {
-    s <- sort(kmeansResult$centers[i,], decreasing=TRUE)
-    
-    cat(names(s)[1:10], "\n")
-  }
-  cat("\n")
-}
+cluster2.master <- cluster2$cluster
+cluster4.master <- cluster4$cluster
+cluster8.master <- cluster8$cluster
+cluster16.master <- cluster16$cluster
+```
+We perform Classical multidimensional scaling (SMC) to map the data (distance matrix) into 2D dimension and then visualize it.
+```{r cluster_visualize, echo=TRUE}
+dist.matrix = proxy::dist(tfidf.matrix, method = "cosine") 
+points <- cmdscale(dist.matrix, k = 2) 
+previous.par <- par(mfrow=c(2,2), mar = rep(1.5, 4)) 
+#my_palette <- palette(rainbow(16))
+color <- grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
+my_palette <- sample(color, n)
+
+ 
+plot(points, main = 'K-Means clustering (k=2)', col = my_palette[as.factor(cluster2.master)], 
+     mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
+     xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
+legend("topright", sprintf("%s",seq(1,2)), fill = my_palette[1:2])
+clusplot(points, cluster2.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+plot(points, main = 'K-Means clustering (k=4)', col = my_palette[as.factor(cluster4.master)], 
+     mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
+     xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
+legend("topright", sprintf("%s",seq(1,4)), fill = my_palette[1:4])
+clusplot(points, cluster4.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+plot(points, main = 'K-Means clustering (k=8)', col = my_palette[as.factor(cluster8.master)], 
+     mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
+     xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
+legend("topright", sprintf("%s",seq(1,8)), fill = my_palette[1:8])
+clusplot(points, cluster8.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+plot(points, main = 'K-Means clustering (k=16)', col = my_palette[as.factor(cluster16.master)],  
+     mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
+     xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
+legend("topright", sprintf("%s",seq(1,16)), fill = my_palette[1:16])
+clusplot(points, cluster16.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+
+par(previous.par) # recovering the original plot space parameters 
 
 ```
