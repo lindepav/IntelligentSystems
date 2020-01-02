@@ -1,0 +1,7 @@
+CC=/usr/local/Cellar/gcc/9.2.0_3/bin/gcc-7
+CXX=/usr/local/Cellar/gcc/9.2.0_3/bin/g++-7
+CXX11=/usr/local/Cellar/gcc/9.2.0_3/bin/g++-7
+CXX14=/usr/local/Cellar/gcc/9.2.0_3/bin/g++-7
+cxx17=/usr/local/cellar/gcc/9.2.0_3/bin/g++-7
+cxx1X=/usr/local/cellar/gcc/9.2.0_3/bin/g++-7
+LDFLAGS=-L/usr/local/Cellar/gcc/9.2.0_3/lib

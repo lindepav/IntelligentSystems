@@ -10,11 +10,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r libraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
-#library(qdap) # qualitative data analysis package (it masks %>%)
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
 library(ggplot2)
 library(cluster)
+library(proxy)
 ```
 
 ## 0. Read input
@@ -22,28 +22,64 @@ library(cluster)
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
 length(which(!complete.cases(train)))
-train$text_a[1:3]
+head(train$text_a)
 ```
 
 # 1. Cleaning data
-## Remove punctuation and stopwords (?TODO: tolower)
+## Remove punctuation and stopwords
 ```{r punctuation, echo=TRUE}
 train$text_a = as.character(train$text_a)
 train$text_a = tm::removePunctuation(train$text_a)
 train$text_a = tm::removeWords(x = train$text_a, stopwords(kind = "SMART"))
 train$text_a = tm::stripWhitespace(train$text_a)
-train$text_a[1:3]
+#train$text_a = tolower(train$text_a)
+head(train$text_a)
 ```
 
 ## Anonymize proper nouns
-```{r anonymize, echo=TRUE}
 
+```{r import2, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+#install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
+
+library(NLP)
+library(rJava)
+library(openNLP)
+library(openNLPmodels.en)
+library(digest)
+detach("package:ggplot2", unload=TRUE)
+```
+
+```{r anonymize, echo=TRUE}
+n <- length(train$text_a)
+word_ann <- Maxent_Word_Token_Annotator()
+sent_ann <- Maxent_Sent_Token_Annotator()
+pos_ann = Maxent_POS_Tag_Annotator()
+
+for (i in 1:n) {
+  doc <- as.String(train$text_a[[1]])
+  wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
+  POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
+  POSWords <- subset(POSAnnotation, type == "word")  
+  POSTags <- vector()
+  for (j in 1:length(POSWords$features))
+    POSTags <- c(POSTags, POSWords$features[[j]]$POS)
+  
+  tokenPOS <- cbind(doc[POSWords], POSTags)
+  ppn_idx <- which(tokenPOS[,2] == "NNP", 1)
+    
+  tokenPOS[ppn_idx] <- digest(tokenPOS[ppn_idx,1], "md5)"
+  new <- 
+  #train$text_a[[i]] <- list(POSTags)
+}
 ```
 
 ## Remove unknown symbols (non UTF-8 characters)
 ```{r symbols, echo=TRUE}
 train$text_a <- iconv(train$text_a, to='UTF-8', sub='byte')
-train$text_a[1:3]
+length(train$text_a)
+train <- train[train$text_a != " ",]
+length(train$text_a)
+head(train$text_a)
 ```
 
 # 2. Exploration
@@ -112,7 +148,7 @@ qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencie
 ## II. Perform a clustering on the vectorized document space
 We will use Weighted TF-IDF as a way to represent the document space:
 ```{r cluster1, echo=TRUE}
-tdm <- tm::DocumentTermMatrix(corpus) 
+tdm <- tm::DocumentTermMatrix(corpus2) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
@@ -134,35 +170,77 @@ We perform Classical multidimensional scaling (SMC) to map the data (distance ma
 dist.matrix = proxy::dist(tfidf.matrix, method = "cosine") 
 points <- cmdscale(dist.matrix, k = 2) 
 previous.par <- par(mfrow=c(2,2), mar = rep(1.5, 4)) 
-#my_palette <- palette(rainbow(16))
 color <- grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
-my_palette <- sample(color, n)
 
- 
+my_palette = sample(color, 2)
 plot(points, main = 'K-Means clustering (k=2)', col = my_palette[as.factor(cluster2.master)], 
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,2)), fill = my_palette[1:2])
-clusplot(points, cluster2.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster2.master, main='K-Means clustering (k=2)', color=TRUE, shade=TRUE, labels=2, lines=0)
 
+my_palette = sample(color, 4)
 plot(points, main = 'K-Means clustering (k=4)', col = my_palette[as.factor(cluster4.master)], 
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,4)), fill = my_palette[1:4])
-clusplot(points, cluster4.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster4.master, main = 'K-Means clustering (k=4)', color=TRUE, shade=TRUE, labels=2, lines=0)
 
+my_palette = sample(color, 8)
 plot(points, main = 'K-Means clustering (k=8)', col = my_palette[as.factor(cluster8.master)], 
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,8)), fill = my_palette[1:8])
-clusplot(points, cluster8.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster8.master, main = 'K-Means clustering (k=8)', color=TRUE, shade=TRUE, labels=2, lines=0)
 
+my_palette = sample(color, 16)
 plot(points, main = 'K-Means clustering (k=16)', col = my_palette[as.factor(cluster16.master)],  
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,16)), fill = my_palette[1:16])
-clusplot(points, cluster16.master, color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster16.master, main = 'K-Means clustering (k=16)', color=TRUE, shade=TRUE, labels=2, lines=0)
 
 par(previous.par) # recovering the original plot space parameters 
+```
+```{r class_coloring, echo=TRUE}
+points <- cmdscale(dist.matrix, k = 2) 
+colors <- c('red', 'blue')
 
+plot(points, main = 'Documents with class labels', col = colors[as.factor(train$label)], 
+     mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
+     xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
+legend("topright", c('ham', 'insult'), fill = colors[1:2])
+```
+
+```{r import3, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+#install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
+library(NLP)
+library(rJava)
+library(openNLP)
+library(openNLPmodels.en)
+detach("package:ggplot2", unload=TRUE)
+```
+
+```{r pos, echo=TRUE}
+docs <- stemmed
+n <- length(docs)
+word_ann <- Maxent_Word_Token_Annotator()
+sent_ann <- Maxent_Sent_Token_Annotator()
+pos_ann = Maxent_POS_Tag_Annotator()
+
+docsPOS <- list()
+for (i in 1:n) {
+  doc <-  as.String(docs[[i]])
+  wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
+  POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
+  POSWords <- subset(POSAnnotation, type == "word")  
+  POSTags <- vector()
+  for (j in 1:length(POSWords$features))
+    POSTags <- c(POSTags, POSWords$features[[j]]$POS)
+  docsPOS[[i]] <- list(POSTags)
+}
+
+head(docsPOS)
+head(stemmed)
+length(docsPOS)
 ```
