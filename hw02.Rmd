@@ -261,11 +261,7 @@ notins <- length(train$label)
 ratio <- ins/notins
 
 install.packages("ipred")
-library(tidyverse)
 library(ipred)
-
-library(tidytext)
-library(stringr)
 library(caret)
 library(tm)
 
@@ -276,7 +272,9 @@ final <- cbind(tfidf.matrix, avector)
 final <- as.data.frame(final)
 final$label <- as.factor(final$label)
 
-spamLog = glm(label~., data=final, family="binomial")
+fit = glm(label~., data=final, family="binomial") #This doesnt complete for me but it should work
+#fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
+                                                            #there are different words in the test document
 
 
 test$text_a = as.character(test$text_a)
@@ -288,10 +286,8 @@ corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
 
 tdmtest <- tm::DocumentTermMatrix(corpustest) 
 tdmtest.tfidf <- tm::weightTfIdf(tdmtest)
-tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999)  # sparsity being not well handled overall in R
+tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999) 
 tfidftest.matrix <- as.matrix(tdmtest.tfidf)
-install.packages("janitor")
-library(janitor)
-tfidftest.matrix <- clean_names(tfidftest.matrix)
-pred<-predict(fit,tfidftest.matrix)
+
+pred<-predict(fit,tfidftest.matrix) 
 ```
