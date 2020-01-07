@@ -28,15 +28,46 @@ length(which(!complete.cases(train)))
 head(train$text_a)
 ```
 
+
 # 1. Cleaning data
 ## Remove punctuation and stopwords
 ```{r punctuation, echo=TRUE}
+ins <- sum(train$label)
+notins <- length(train$label) - ins
+torem <- notins - ins
+ratio <- ins/notins
+count <- 0
+numb <- train[3,1]
+for (i in 1:length(train$label)){
+  if(count > torem){
+    break
+  }
+  
+  if(train[i,1] == numb){
+    train[i,1] <- NA
+    count <- count + 1
+  }
+}
+train <- train[complete.cases(train),]
 train$text_a = as.character(train$text_a)
 train$text_a = tm::removePunctuation(train$text_a)
 train$text_a = tm::removeWords(x = train$text_a, stopwords(kind = "SMART"))
 train$text_a = tm::stripWhitespace(train$text_a)
 #train$text_a = tolower(train$text_a)
 head(train$text_a)
+
+test$text_a = as.character(test$text_a)
+test$text_a = tm::removePunctuation(test$text_a)
+test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
+test$text_a = tm::stripWhitespace(test$text_a)
+stemmedtest <- stemDocument(test$text_a, language = "english")
+corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
+
+tdmtest <- tm::DocumentTermMatrix(corpustest) 
+tdmtest.tfidf <- tm::weightTfIdf(tdmtest)
+tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999) 
+tfidftest.matrix <- as.matrix(tdmtest.tfidf)
+
 ```
 
 ## Anonymize proper nouns
@@ -256,38 +287,45 @@ length(docsPOS)
 ```
 
 ```{r model, echo = TRUE}
-ins <- sum(train$label)
-notins <- length(train$label)
-ratio <- ins/notins
+
 
 install.packages("ipred")
 library(ipred)
 library(caret)
 library(tm)
+install.packages("MLmetrics")
+library(MLmetrics)
 
-control <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
 
-avector <- as.vector(train['label'])
+train$lbl <- train$label
+avector <- as.vector(train['lbl'])
 final <- cbind(tfidf.matrix, avector)
 final <- as.data.frame(final)
-final$label <- as.factor(final$label)
+final$lbl=ifelse(final$lbl==0,"No","Yes") 
+final$lbl <- as.factor(final$lbl)
 
-fit = glm(label~., data=final, family="binomial") #This doesnt complete for me but it should work
-#fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
-                                                            #there are different words in the test document
+dat <- twoClassSim(200)
+f1 <- function(data, lev = NULL, model = NULL) {
+  f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
+  c(F1 = f1_val)
+}
 
 
-test$text_a = as.character(test$text_a)
-test$text_a = tm::removePunctuation(test$text_a)
-test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
-test$text_a = tm::stripWhitespace(test$text_a)
-stemmedtest <- stemDocument(test$text_a, language = "english")
-corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
+train.control <- trainControl(method = "repeatedcv",
+                          number = 10,
+                          repeats = 3,
+                          classProbs = TRUE,
+                          #sampling = "smote",
+                          summaryFunction = f1,
+                          search = "grid")
 
-tdmtest <- tm::DocumentTermMatrix(corpustest) 
-tdmtest.tfidf <- tm::weightTfIdf(tdmtest)
-tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999) 
-tfidftest.matrix <- as.matrix(tdmtest.tfidf)
+
+fit <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
+             trControl = trainControl(summaryFunction = f1, 
+                                      classProbs = TRUE)) 
+
+
+
 
 pred<-predict(fit,tfidftest.matrix) 
 ```
