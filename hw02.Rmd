@@ -9,6 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r libraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+install.packages("proxy")
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
@@ -20,7 +21,9 @@ library(proxy)
 ## 0. Read input
 ```{r import, echo=TRUE}
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+train <- train[-c(1),]
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
+
 length(which(!complete.cases(train)))
 head(train$text_a)
 ```
@@ -39,14 +42,18 @@ head(train$text_a)
 ## Anonymize proper nouns
 
 ```{r import2, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
-#install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
-
+install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
 library(NLP)
+install.packages("rJava")
 library(rJava)
+install.packages("openNLP")
 library(openNLP)
+install.packages("openNLPmodels.en")
+install.packages("ggplot2")
 library(openNLPmodels.en)
 library(digest)
-detach("package:ggplot2", unload=TRUE)
+#detach("package:ggplot2", unload=TRUE)
+library(ggplot2)
 ```
 
 ```{r anonymize, echo=TRUE}
@@ -70,6 +77,7 @@ for (i in 1:n) {
   tokenPOS[ppn_idx] <- digest(tokenPOS[ppn_idx, 1], "md5")
   words <- subset(wordAnnotation, type == "word")  
   train$text_a[[i]] <- 
+  
 }
 ```
 
@@ -243,4 +251,40 @@ for (i in 1:n) {
 head(docsPOS)
 head(stemmed)
 length(docsPOS)
+```
+
+```{r model, echo = TRUE}
+ins <- sum(train$label)
+notins <- length(train$label)
+ratio <- ins/notins
+table(train$label)
+
+install.packages("ipred")
+library(ipred)
+library(caret)
+library(tm)
+
+control <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+
+avector <- as.vector(train['label'])
+final <- cbind(tfidf.matrix, avector)
+final <- as.data.frame(final)
+final$label <- as.factor(final$label)
+
+fit = glm(label~., data=final, family="binomial") #This doesnt complete for me but it should work
+#fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
+                                                            #there are different words in the test document
+test$text_a = as.character(test$text_a)
+test$text_a = tm::removePunctuation(test$text_a)
+test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
+test$text_a = tm::stripWhitespace(test$text_a)
+stemmedtest <- stemDocument(test$text_a, language = "english")
+corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
+
+tdmtest <- tm::DocumentTermMatrix(corpustest) 
+tdmtest.tfidf <- tm::weightTfIdf(tdmtest)
+tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999) 
+tfidftest.matrix <- as.matrix(tdmtest.tfidf)
+
+pred<-predict(fit,tfidftest.matrix) 
 ```
