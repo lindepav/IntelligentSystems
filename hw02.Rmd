@@ -9,13 +9,15 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r libraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
-install.packages("proxy")
+#install.packages("proxy")
+#install.packages("ggplot2")
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
 library(ggplot2)
 library(cluster)
 library(proxy)
+library(ngram)
 ```
 
 ## 0. Read input
@@ -23,10 +25,10 @@ library(proxy)
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
 train <- train[-c(1),]
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
-
 length(which(!complete.cases(train)))
 head(train$text_a)
 ```
+
 
 # 1. Cleaning data
 ## Remove punctuation and stopwords
@@ -35,25 +37,31 @@ train$text_a = as.character(train$text_a)
 train$text_a = tm::removePunctuation(train$text_a)
 train$text_a = tm::removeWords(x = train$text_a, stopwords(kind = "SMART"))
 train$text_a = tm::stripWhitespace(train$text_a)
+
 #train$text_a = tolower(train$text_a)
-head(train$text_a)
+word_count <- lapply(train$text_a, wordcount)
+length(which(word_count > 50))
+length(which(word_count == 0))
+length(train$text_a)
+train <- train[which(word_count < 50),]
+train <- train[which(word_count > 0),]
+length(train$text_a)
 ```
 
 ## Anonymize proper nouns
 
 ```{r import2, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
-install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
+#install.packages("rJava")
+#install.packages("openNLP")
+#install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
+#install.packages('ngram')
 library(NLP)
-install.packages("rJava")
 library(rJava)
-install.packages("openNLP")
 library(openNLP)
-install.packages("openNLPmodels.en")
-install.packages("ggplot2")
 library(openNLPmodels.en)
 library(digest)
-#detach("package:ggplot2", unload=TRUE)
-library(ggplot2)
+detach("package:ggplot2", unload=TRUE)
+#library(ggplot2)
 ```
 
 ```{r anonymize, echo=TRUE}
@@ -63,29 +71,33 @@ sent_ann <- Maxent_Sent_Token_Annotator()
 pos_ann = Maxent_POS_Tag_Annotator()
 
 for (i in 1:n) {
-  doc <- as.String(train$text_a[[1]])
-  wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
-  POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
-  POSWords <- subset(POSAnnotation, type == "word")  
-  POSTags <- vector()
-  for (j in 1:length(POSWords$features))
-    POSTags <- c(POSTags, POSWords$features[[j]]$POS)
-  
-  tokenPOS <- cbind(doc[POSWords], POSTags)
-  ppn_idx <- which(tokenPOS[,2] == "NNP", 1)
-    
-  tokenPOS[ppn_idx] <- digest(tokenPOS[ppn_idx, 1], "md5")
-  words <- subset(wordAnnotation, type == "word")  
-  train$text_a[[i]] <- 
-  
+  print(i)
+  while(1) {
+    doc <- as.String(train$text_a[[i]])
+    wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
+    POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
+    POSWords <- subset(POSAnnotation, type == "word")  
+    POSTags <- vector()
+    for (j in 1:length(POSWords$features))
+      POSTags <- c(POSTags, POSWords$features[[j]]$POS)
+    tokenPOS <- cbind(doc[POSWords], POSTags)
+    ppn_idx <- which(tokenPOS[,2] == "NNP", 1)
+    if (length(ppn_idx) == 0) {
+      break;
+    }
+    words <- subset(wordAnnotation, type == "word")  
+    hashed <- digest(tokenPOS[ppn_idx, 1], "xxhash32")
+    ppn <- words[ppn_idx]
+    train$text_a[[i]] <- gsub(doc[ppn$start,ppn$end], hashed, doc)
+  }
 }
+
+head(train$text_a)
 ```
 
 ## Remove unknown symbols (non UTF-8 characters)
 ```{r symbols, echo=TRUE}
 train$text_a <- iconv(train$text_a, to='UTF-8', sub='byte')
-length(train$text_a)
-train <- train[train$text_a != " ",]
 length(train$text_a)
 head(train$text_a)
 ```
@@ -253,27 +265,38 @@ head(stemmed)
 length(docsPOS)
 ```
 
-```{r model, echo = TRUE}
-ins <- sum(train$label)
-notins <- length(train$label)
-ratio <- ins/notins
-table(train$label)
-
-install.packages("ipred")
+```{r import4, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+#install.packages("ipred")
+#install.packages("MLmetrics")
 library(ipred)
 library(caret)
 library(tm)
+library(MLmetrics)
+```
 
-control <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+```{r analyze, echo=TRUE}
+table(train$label)
+train$text_a = stemmed
+ins <- sum(train$label)
+notins <- length(train$label) - ins
+torem <- notins - ins
+ratio <- ins/notins
+count <- 0
+numb <- train[3,1]
+for (i in 1:length(train$label)){
+  if(count > torem){
+    break
+  }
+  
+  if(train[i,1] == numb){
+    train[i,1] <- NA
+    count <- count + 1
+  }
+}
+train <- train[complete.cases(train),]
+```
 
-avector <- as.vector(train['label'])
-final <- cbind(tfidf.matrix, avector)
-final <- as.data.frame(final)
-final$label <- as.factor(final$label)
-
-fit = glm(label~., data=final, family="binomial") #This doesnt complete for me but it should work
-#fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
-                                                            #there are different words in the test document
+```{r preprocess_test, echo=TRUE}
 test$text_a = as.character(test$text_a)
 test$text_a = tm::removePunctuation(test$text_a)
 test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
@@ -285,6 +308,55 @@ tdmtest <- tm::DocumentTermMatrix(corpustest)
 tdmtest.tfidf <- tm::weightTfIdf(tdmtest)
 tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999) 
 tfidftest.matrix <- as.matrix(tdmtest.tfidf)
+```
 
-pred<-predict(fit,tfidftest.matrix) 
+```{r model, echo = TRUE}
+sample_idx = sample(seq(1, length(train$text_a)), 100)
+train <- train[sample_idx,]
+table(train$label)
+
+stemmed <- stemDocument(train$text_a, language = "english")
+corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
+tdm <- tm::DocumentTermMatrix(corpus2) 
+tdm.tfidf <- tm::weightTfIdf(tdm)
+tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidf.matrix <- as.matrix(tdm.tfidf) 
+
+train$lbl <- train$label
+avector <- as.vector(train['lbl'])
+final <- cbind(tfidf.matrix, avector)
+final <- as.data.frame(final)
+final$lbl=ifelse(final$lbl==0,"No","Yes") 
+final$lbl <- as.factor(final$lbl)
+
+fit = glm(lbl~., data=final, family="binomial") #This doesnt complete for me but it should work
+#fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
+                                                            #there are different words in the test document
+test$text_a = as.character(test$text_a)
+test$text_a = tm::removePunctuation(test$text_a)
+test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
+test$text_a = tm::stripWhitespace(test$text_a)
+stemmedtest <- stemDocument(test$text_a, language = "english")
+corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
+dat <- twoClassSim(200)
+f1 <- function(data, lev = NULL, model = NULL) {
+  f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
+  c(F1 = f1_val)
+}
+
+
+train.control <- trainControl(method = "repeatedcv",
+                          number = 10,
+                          repeats = 3,
+                          classProbs = TRUE,
+                          #sampling = "smote",
+                          summaryFunction = f1,
+                          search = "grid")
+
+
+fit <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
+             trControl = trainControl(summaryFunction = f1, 
+                                      classProbs = TRUE)) 
+
+pred<-predict(fit, tfidftest.matrix) 
 ```
