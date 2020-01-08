@@ -326,8 +326,8 @@ tfidf.matrix <- as.matrix(tdm.tfidf)
 
 train$lbl <- train$label
 avector <- as.vector(train['lbl'])
-#final <- cbind(tfidf.matrix, avector)
-final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
+final <- cbind(tfidf.matrix, avector)
+#final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
 final <- as.data.frame(final)
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl)
@@ -354,8 +354,8 @@ train.control <- trainControl(method = "repeatedcv",
 fit <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
              trControl = trainControl(summaryFunction = f1, 
                                       classProbs = TRUE)) 
-
-pred<-predict(fit, tfidftest.matrix) 
+test.matrix <- as.data.frame(tfidftest.matrix)
+pred<-predict(fit, test.matrix) 
 ```
 
 # 4. Understanding
@@ -397,23 +397,38 @@ final$lbl=ifelse(final$lbl==0,"No","Yes")
 final$lbl <- as.factor(final$lbl)
 colnames(final) <- make.names(colnames(final),unique = T)
 label.task <- makeClassifTask(data=final, target='lbl')
+
 melt <- reshape2::melt
 fv = generateFilterValuesData(label.task, method ="anova.test")
-fv$data
 
-plotFilterValues(fv, sort = "dec", 10) 
+fv$data <- fv$data[order(-fv$data$value),]
+head(fv$data)
+plotFilterValues(fv) 
 ```
 
-## Extract feature importances from a wrapper method (e.g., via a random forest)
+## Extract feature importances from a wrapper method
 ```{r varimp, echo=TRUE}
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
 # train the model
-model <- train(lbl~., data=final, method="lvq", preProcess="scale", trControl=control)
+model <- caret::train(lbl~., data=final, method="lvq", preProcess="scale", trControl=control)
 # estimate variable importance
-importance <- varImp(model, scale=FALSE)
+importance <- varImp(model, scale=FALSE)$importance
 # summarize importance
 print(importance)
 # plot importance
 plot(importance)
+```
+
+## Compare the two feature rankings 
+```{r jaccard, echo=TRUE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("qvalue")
+install.packages('jaccard')
+
+library(jaccard)
+A <- fv$data$name
+B <- rownames(importance[order(-importance$Yes),])
+score10 <- jaccard(A[1:20], B[1:20])
 
 ```
