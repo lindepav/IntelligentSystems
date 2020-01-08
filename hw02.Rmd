@@ -23,7 +23,7 @@ library(ngram)
 ## 0. Read input
 ```{r import, echo=TRUE}
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
-train <- train[-c(1),]
+#train <- train[-c(1),]
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
 length(which(!complete.cases(train)))
 head(train$text_a)
@@ -41,9 +41,12 @@ train$text_a = tm::stripWhitespace(train$text_a)
 #train$text_a = tolower(train$text_a)
 word_count <- lapply(train$text_a, wordcount)
 length(which(word_count > 50))
+length(which(word_count < 50))
 length(which(word_count == 0))
 length(train$text_a)
 train <- train[which(word_count < 50),]
+word_count <- lapply(train$text_a, wordcount)
+length(train$text_a)
 train <- train[which(word_count > 0),]
 length(train$text_a)
 ```
@@ -61,7 +64,6 @@ library(openNLP)
 library(openNLPmodels.en)
 library(digest)
 detach("package:ggplot2", unload=TRUE)
-#library(ggplot2)
 ```
 
 ```{r anonymize, echo=TRUE}
@@ -71,7 +73,6 @@ sent_ann <- Maxent_Sent_Token_Annotator()
 pos_ann = Maxent_POS_Tag_Annotator()
 
 for (i in 1:n) {
-  print(i)
   while(1) {
     doc <- as.String(train$text_a[[i]])
     wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
@@ -105,6 +106,7 @@ head(train$text_a)
 # 2. Exploration
 ### I. Plot the frequency of words (without stemmization)
 ```{r frequency1, echo=TRUE}
+library(ggplot2)
 corpus <- Corpus(VectorSource(train$text_a)) # turn into corpus
 tdm <- TermDocumentMatrix(corpus)
 
@@ -359,4 +361,42 @@ fit <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
                                       classProbs = TRUE)) 
 
 pred<-predict(fit, tfidftest.matrix) 
+```
+
+# 4. Understanding
+## Perform feature ranking 
+```{r filtering, echo=TRUE}
+# load the library
+library(mlbench)
+library(caret)
+
+# calculate correlation matrix
+correlationMatrix <- cor(tfidf.matrix)
+# summarize the correlation matrix
+View(correlationMatrix)
+dim(correlationMatrix)
+# find attributes that are highly corrected (ideally >0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
+# how many attributes stays (we get indices as 'highlyCorrelated')
+length(highlyCorrelated)
+train <- train[highlyCorrelated,]
+```
+
+We will use the TF-IDF matrix to calculate information gain:
+```{r feature-selection, echo=TRUE}
+
+```
+
+## Extract feature importances from a wrapper method (e.g., via a random forest)
+```{r varimp, echo=TRUE}
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the model
+model <- train(lbl~., data=train, method="lvq", preProcess="scale", trControl=control)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
+
 ```
