@@ -402,8 +402,10 @@ melt <- reshape2::melt
 fv = generateFilterValuesData(label.task, method ="anova.test")
 
 fv$data <- fv$data[order(-fv$data$value),]
-head(fv$data)
-plotFilterValues(fv) 
+fv.plot <- fv
+fv.plot$data <- head(fv.plot$data, 20)
+fv.plot$data
+plotFilterValues(fv.plot)
 ```
 
 ## Extract feature importances from a wrapper method
@@ -416,11 +418,12 @@ importance <- varImp(model, scale=FALSE)$importance
 # summarize importance
 print(importance)
 # plot importance
-plot(importance)
+plot(varImp(model, scale=FALSE), top = 20)
 ```
 
 ## Compare the two feature rankings 
 ```{r jaccard, echo=TRUE}
+library(ggplot2)
 get_jaccard <- function(A, B) {
   return(length(intersect(A,B)) / length(union(A,B)))  
 }
@@ -429,9 +432,11 @@ A <- fv$data$name
 B <- rownames(importance[order(-importance$Yes),])
 length(A) == length(B)
 
-scores <- c()
+Jaccard.score <- c()
 for (i in 1:length(A)) {
-  scores[i] <- get_jaccard(A[1:i], B[1:i])
+  Jaccard.score[i] <- get_jaccard(A[1:i], B[1:i])
 }
-scores
+n <- seq(1, length(A), 1)
+qplot(n, Jaccard.score)
+
 ```
