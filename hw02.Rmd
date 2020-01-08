@@ -14,7 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
-library(ggplot2)
 library(cluster)
 library(proxy)
 library(ngram)
@@ -49,6 +48,7 @@ word_count <- lapply(train$text_a, wordcount)
 length(train$text_a)
 train <- train[which(word_count > 0),]
 length(train$text_a)
+head(train$text_a)
 ```
 
 ## Anonymize proper nouns
@@ -57,13 +57,12 @@ length(train$text_a)
 #install.packages("rJava")
 #install.packages("openNLP")
 #install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
-#install.packages('ngram')
 library(NLP)
 library(rJava)
 library(openNLP)
 library(openNLPmodels.en)
 library(digest)
-detach("package:ggplot2", unload=TRUE)
+#detach("package:ggplot2", unload=TRUE)
 ```
 
 ```{r anonymize, echo=TRUE}
@@ -303,6 +302,7 @@ test$text_a = as.character(test$text_a)
 test$text_a = tm::removePunctuation(test$text_a)
 test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
 test$text_a = tm::stripWhitespace(test$text_a)
+test$text_a <- iconv(test$text_a, to='UTF-8', sub='byte')
 stemmedtest <- stemDocument(test$text_a, language = "english")
 corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
 
@@ -326,7 +326,8 @@ tfidf.matrix <- as.matrix(tdm.tfidf)
 
 train$lbl <- train$label
 avector <- as.vector(train['lbl'])
-final <- cbind(tfidf.matrix, avector)
+#final <- cbind(tfidf.matrix, avector)
+final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
 final <- as.data.frame(final)
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl)
@@ -334,12 +335,6 @@ final$lbl <- as.factor(final$lbl)
 fit = glm(lbl~., data=final, family="binomial") #This doesnt complete for me but it should work
 #fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
                                                             #there are different words in the test document
-test$text_a = as.character(test$text_a)
-test$text_a = tm::removePunctuation(test$text_a)
-test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
-test$text_a = tm::stripWhitespace(test$text_a)
-stemmedtest <- stemDocument(test$text_a, language = "english")
-corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
 dat <- twoClassSim(200)
 f1 <- function(data, lev = NULL, model = NULL) {
   f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
@@ -365,33 +360,55 @@ pred<-predict(fit, tfidftest.matrix)
 
 # 4. Understanding
 ## Perform feature ranking 
+We will use only terms which occur in more than one document and which correlation with other terms is high:  
 ```{r filtering, echo=TRUE}
 # load the library
 library(mlbench)
 library(caret)
 
+# get rid of words which are only in 1 document
+tfidf.matrix <- tfidf.matrix[,-which(rowSums(as.matrix(tdm2)) == 1)]
+dim(tfidf.matrix)
+
 # calculate correlation matrix
 correlationMatrix <- cor(tfidf.matrix)
 # summarize the correlation matrix
-View(correlationMatrix)
 dim(correlationMatrix)
 # find attributes that are highly corrected (ideally >0.75)
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
 # how many attributes stays (we get indices as 'highlyCorrelated')
 length(highlyCorrelated)
-train <- train[highlyCorrelated,]
+dim(tfidf.matrix)
+tfidf.matrix <- tfidf.matrix[,highlyCorrelated]
+dim(tfidf.matrix)
+
 ```
 
 We will use the TF-IDF matrix to calculate information gain:
 ```{r feature-selection, echo=TRUE}
+#install.packages('ggpubr')
+library(mlr)
+library(ggpubr)
+train$lbl <- train$label
+avector <- as.vector(train['lbl'])
+final <- cbind(tfidf.matrix, avector)
+final <- as.data.frame(final)
+final$lbl=ifelse(final$lbl==0,"No","Yes") 
+final$lbl <- as.factor(final$lbl)
+colnames(final) <- make.names(colnames(final),unique = T)
+label.task <- makeClassifTask(data=final, target='lbl')
+melt <- reshape2::melt
+fv = generateFilterValuesData(label.task, method ="anova.test")
+fv$data
 
+plotFilterValues(fv, sort = "dec", 10) 
 ```
 
 ## Extract feature importances from a wrapper method (e.g., via a random forest)
 ```{r varimp, echo=TRUE}
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
 # train the model
-model <- train(lbl~., data=train, method="lvq", preProcess="scale", trControl=control)
+model <- train(lbl~., data=final, method="lvq", preProcess="scale", trControl=control)
 # estimate variable importance
 importance <- varImp(model, scale=FALSE)
 # summarize importance
