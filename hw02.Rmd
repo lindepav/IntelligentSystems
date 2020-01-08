@@ -421,14 +421,17 @@ plot(importance)
 
 ## Compare the two feature rankings 
 ```{r jaccard, echo=TRUE}
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("qvalue")
-install.packages('jaccard')
+get_jaccard <- function(A, B) {
+  return(length(intersect(A,B)) / length(union(A,B)))  
+}
 
-library(jaccard)
 A <- fv$data$name
 B <- rownames(importance[order(-importance$Yes),])
-score10 <- jaccard(A[1:20], B[1:20])
+length(A) == length(B)
 
+scores <- c()
+for (i in 1:length(A)) {
+  scores[i] <- get_jaccard(A[1:i], B[1:i])
+}
+scores
 ```
