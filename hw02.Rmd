@@ -355,11 +355,9 @@ fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1
              trControl = trainControl(summaryFunction = f1, 
                                     classProbs = TRUE)) 
 
-
-
 fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
-             trControl = trainControl(summaryFunction = f1, 
-                                    classProbs = TRUE)) 
+             trControl = train.control) 
+
 
 test.matrix <- as.data.frame(tfidftest.matrix)
 cols <- colnames(final)
@@ -368,7 +366,9 @@ test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
 
 predRf = predict(fitRf, newdata=test.matrix)
+fitRf
 predSvm = predict(fitSvm, newdata=test.matrix)
+fitSvm
 
 test$label=ifelse(test$label==0,"No","Yes") 
 test$label <- as.factor(test$label)
