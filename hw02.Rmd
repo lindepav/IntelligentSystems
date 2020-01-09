@@ -22,7 +22,6 @@ library(ngram)
 ## 0. Read input
 ```{r import, echo=TRUE}
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
-#train <- train[-c(1),]
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
 length(which(!complete.cases(train)))
 head(train$text_a)
@@ -62,7 +61,6 @@ library(rJava)
 library(openNLP)
 library(openNLPmodels.en)
 library(digest)
-#detach("package:ggplot2", unload=TRUE)
 ```
 
 ```{r anonymize, echo=TRUE}
@@ -103,6 +101,8 @@ head(train$text_a)
 ```
 
 # 2. Exploration
+We are computing the TDM matrix from 2 corpuses: one with stemmization, one without. From the results we can see that the character of the corpus remains. Thus, we will use the stemmed corpus for the future evaluation.
+
 ### I. Plot the frequency of words (without stemmization)
 ```{r frequency1, echo=TRUE}
 library(ggplot2)
@@ -114,27 +114,23 @@ qplot(seq(length(wordFreq)),sort(wordFreq), xlab = "index", ylab = "Frequency")
 
 findFreqTerms(tdm, lowfreq=50)
 mostFreq <- subset(wordFreq, wordFreq >= 50)
-qplot(seq(length(mostFreq)),sort(mostFreq), xlab = "index", ylab = "Frequency")
+head(mostFreq, 10)
 
 length(wordFreq)
-
 length(wordFreq[wordFreq<10])
-
 length(wordFreq[wordFreq<5])
-
 length(wordFreq[wordFreq==1])
-
 
 freq <- sort(unique(wordFreq), decreasing=FALSE)
 occ <- vector()
 for (i in 1:length(freq)) {
   occ[i] <- length(wordFreq[wordFreq == freq[i]])
 }
-qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencies")
+qplot(freq[1:30], occ[1:30], xlab = "Frequency of word", ylab = "# of occurencies")
 
 ```
 
-### I. Plot the frequency of words (with stemmization)
+### II. Plot the frequency of words (with stemmization)
 ```{r stemmization1, echo=TRUE}
 stemmed <- stemDocument(train$text_a, language = "english")
 corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
@@ -143,27 +139,19 @@ corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
 tdm2 <- TermDocumentMatrix(corpus2)
 wordFreq <- sort(rowSums(as.matrix(tdm2)), decreasing=TRUE)
 mostFreq <- subset(wordFreq, wordFreq >= 50)
-```
-```{r stemmization2, echo=TRUE}
-qplot(seq(length(mostFreq)),sort(mostFreq), xlab = "index", ylab = "Frequency")
+head(mostFreq, 10)
 
 length(wordFreq)
-
 length(wordFreq[wordFreq<10])
-
 length(wordFreq[wordFreq<5])
-
 length(wordFreq[wordFreq==1])
-```
-```{r freq3, echo=FALSE}
+
 freq <- sort(unique(wordFreq), decreasing=FALSE)
 occ <- vector()
 for (i in 1:length(freq)) {
   occ[i] <- length(wordFreq[wordFreq == freq[i]])
 }
-```
-```{r stemmization3, echo=TRUE}
-qplot(freq[1:15], occ[1:15], xlab = "Frequency of word", ylab = "# of occurencies")
+qplot(freq[1:30], occ[1:30], xlab = "Frequency of word", ylab = "# of occurencies")
 ```
 
 ## II. Perform a clustering on the vectorized document space
@@ -174,7 +162,7 @@ tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
 ```
-Afterwards, we perform kmeans algorithm to cluster in {2,4,8,16} classes.
+Afterwards, we perform k-means algorithm to cluster in {2,4,8,16} classes.
 ```{r cluster2, echo=TRUE}
 cluster2 <- kmeans(tfidf.matrix, centers=2)
 cluster4 <- kmeans(tfidf.matrix, centers=4)
@@ -232,14 +220,13 @@ plot(points, main = 'Documents with class labels', col = colors[as.factor(train$
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", c('ham', 'insult'), fill = colors[1:2])
 ```
-
 ```{r import3, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
 #install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
 library(NLP)
 library(rJava)
 library(openNLP)
 library(openNLPmodels.en)
-#detach("package:ggplot2", unload=TRUE)
+detach("package:ggplot2", unload=TRUE)
 ```
 
 ```{r pos, echo=TRUE}
@@ -265,32 +252,38 @@ head(docsPOS)
 head(stemmed)
 length(docsPOS)
 ```
-
-```{r import4, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
-#install.packages("ipred")
-#install.packages("MLmetrics")
-
-library(ipred)
-library(caret)
-library(tm)
-library(MLmetrics)
-library(rpart)
-library(rpart.plot)
-library(ROSE)
-```
-
-```{r analyze, echo=TRUE}
-table(train$label)
-train <- ovun.sample(label ~ ., data = train, method = "over")$data
-table(train$label)
-```
-
+# 3. Modeling
 ```{r preprocess_test, echo=TRUE}
 test$text_a = as.character(test$text_a)
 test$text_a = tm::removePunctuation(test$text_a)
 test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
 test$text_a = tm::stripWhitespace(test$text_a)
+
+test <- test[which(lapply(test$text_a, wordcount) > 0),]
+n <- length(test$text_a)
+for (i in 1:n) {
+  while(1) {
+    doc <- as.String(test$text_a[[i]])
+    wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
+    POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
+    POSWords <- subset(POSAnnotation, type == "word")
+    POSTags <- vector()
+    for (j in 1:length(POSWords$features))
+      POSTags <- c(POSTags, POSWords$features[[j]]$POS)
+    tokenPOS <- cbind(doc[POSWords], POSTags)
+    ppn_idx <- which(tokenPOS[,2] == "NNP", 1)
+    if (length(ppn_idx) == 0) {
+      break;
+    }
+    words <- subset(wordAnnotation, type == "word")
+    hashed <- digest(tokenPOS[ppn_idx, 1], "xxhash32")
+    ppn <- words[ppn_idx]
+    test$text_a[[i]] <- gsub(doc[ppn$start,ppn$end], hashed, doc)
+  }
+}
 test$text_a <- iconv(test$text_a, to='UTF-8', sub='byte')
+test$label=ifelse(test$label==0,"No","Yes") 
+test$label <- as.factor(test$label)
 stemmedtest <- stemDocument(test$text_a, language = "english")
 corpustest <- Corpus(VectorSource(stemmedtest)) # turn into corpus
 
@@ -300,19 +293,37 @@ tdmtest.tfidf <- tm::removeSparseTerms(tdmtest.tfidf, 0.999)
 tfidftest.matrix <- as.matrix(tdmtest.tfidf)
 ```
 
-```{r model, echo = TRUE}
-#sample_idx = sample(seq(1, length(train$text_a)), 100)
-#train <- train[sample_idx,]
-#table(train$label)
+```{r import4, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+#install.packages("ipred")
+#install.packages("MLmetrics")
+library(ipred)
+library(caret)
+library(tm)
+library(MLmetrics)
+library(rpart)
+library(rpart.plot)
+library(ROSE)
+library(C50)
 
-stemmed <- stemDocument(train$text_a, language = "english")
-corpus <- Corpus(VectorSource(stemmed)) # turn into corpus
+```
+The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed undersampling to get rid of this imbalance:
+```{r analyze, echo=TRUE}
+train$text_a = stemmed
+table(train$label)
+train2 <- ovun.sample(label ~ ., data = train, method = "over")$data
+table(train2$label)
+```
+```{r undersampling-tfidf, echo=TRUE, results='hide'}
+corpus <- Corpus(VectorSource(train2$text_a)) # turn into corpus
 tdm <- tm::DocumentTermMatrix(corpus) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
-train$lbl <- train$label
-avector <- as.vector(train['lbl'])
+```
+
+```{r model, echo = TRUE}
+train2$lbl <- train2$label
+avector <- as.vector(train2['lbl'])
 final <- cbind(tfidf.matrix, avector)
 final <- as.data.frame(final) 
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
@@ -323,16 +334,16 @@ f1 <- function(data, lev = NULL, model = NULL) {
   c(F1 = f1_val)
 }
 train.control <- trainControl(method = "repeatedcv",
-                          number = 10,
+                          number = 5,
                           repeats = 3,
                           classProbs = TRUE,
-                          #sampling = "smote",
                           summaryFunction = f1,
                           search = "grid")
-fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
-             trControl = train.control) 
-fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
-             trControl = train.control) 
+#fitRf <- caret::train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
+ #            trControl = train.control
+fitSvm <- caret::train(lbl ~ ., data = final, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
+
+print(fitSvm$results$F1)
 
 #We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrix <- as.data.frame(tfidftest.matrix)
@@ -342,53 +353,51 @@ test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
 
 #We predict the two models on the test matrix
-predRf = predict(fitRf, newdata=test.matrix)
+#predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
 
 #And then we factorize the labels for visualization
-test$label=ifelse(test$label==0,"No","Yes") 
-test$label <- as.factor(test$label)
-con.matrix.rf<-confusionMatrix(predRf, test$label)
-print(con.matrix.rf)
-test$label <- as.factor(test$label)
+#test$label <- as.factor(test$label)
+#con.matrix.rf<-confusionMatrix(predRf, test$label)
+#print(con.matrix.rf)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
 print(con.matrix.svm)
+table(train$label)
+table(test$label)
+majority_classifier <- length(which(test$label == 'No')) / length(test$label)
+majority_classifier
 ```
 
 # 4. Understanding
-We will use only terms which occur in more than one document and which correlation with other terms is high:  
+```{r feature-selection-preprocess, echo=TRUE}
+corpus <- Corpus(VectorSource(stemmed)) # turn into corpus
+tdm <- tm::DocumentTermMatrix(corpus) 
+tdm.tfidf <- tm::weightTfIdf(tdm)
+tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidf.matrix <- as.matrix(tdm.tfidf) 
+```
+
+We will use only terms which occur in more than one document:  
 ```{r filtering, echo=TRUE}
 # load the library
 library(mlbench)
 library(caret)
 
 # get rid of words which are only in 1 document
+dim(tfidf.matrix)
 tfidf.matrix <- tfidf.matrix[,-which(rowSums(as.matrix(tdm2)) == 1)]
 dim(tfidf.matrix)
-
-# calculate correlation matrix
-correlationMatrix <- cor(tfidf.matrix)
-# summarize the correlation matrix
-dim(correlationMatrix)
-# find attributes that are highly corrected 
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
-# how many attributes stays (we get indices as 'highlyCorrelated')
-length(highlyCorrelated)
-dim(tfidf.matrix)
-tfidf.matrix <- tfidf.matrix[,highlyCorrelated]
-dim(tfidf.matrix)
-
 ```
 ## Perform feature ranking 
 We will use the TF-IDF matrix to calculate information gain by filter method:
-```{r feature-selection, echo=TRUE}
+```{r feature-selection, echo=TRUE, warning=FALSE}
 #install.packages('ggpubr')
 library(mlr)
 library(ggpubr)
 train$lbl <- train$label
 avector <- as.vector(train['lbl'])
 final <- cbind(tfidf.matrix, avector)
-final <- as.data.frame(final)
+final <- as.data.frame(final) 
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl)
 colnames(final) <- make.names(colnames(final),unique = T)
@@ -400,7 +409,6 @@ fv = generateFilterValuesData(label.task, method ="anova.test")
 fv$data <- fv$data[order(-fv$data$value),]
 fv.plot <- fv
 fv.plot$data <- head(fv.plot$data, 20)
-fv.plot$data
 plotFilterValues(fv.plot)
 ```
 
@@ -408,14 +416,12 @@ plotFilterValues(fv.plot)
 ```{r nfeatures-model, echo=TRUE}
 features <- fv$data$name
 n_features <- c(head(features, 20), 'lbl')
-final <- final[,n_features]
+train.data <- final[,n_features]
 
-fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
+fitSvm <- caret::train(lbl ~ ., data = train.data, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
              trControl = train.control) 
-fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
-             trControl = train.control) 
+fitSvm$results$F1
 
-#We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrix <- as.data.frame(tfidftest.matrix)
 cols <- colnames(final)
 Missing <- setdiff(cols, names(test.matrix))
@@ -423,34 +429,51 @@ test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
 
 #We predict the two models on the test matrix
-predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
 
 #And then we factorize the labels for visualization
-test$label=ifelse(test$label==0,"No","Yes") 
-test$label <- as.factor(test$label)
-con.matrix.rf<-confusionMatrix(predRf, test$label)
-print(con.matrix.rf)
-test$label <- as.factor(test$label)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
 print(con.matrix.svm)
+print(con.matrix.svm$overall[1])
 
 ```
 ## Visualize model performance w.r.t. n by using the selected measure of performance.
 ```{r nfeatures-visualize, echo=TRUE}
+library(ggplot2)
+features <- fv$data$name
+n <- c(seq(10, 50, 10), 100, 200, 500)
+accs <- c()
+for (i in 1:length(n)) {
+  n_features <- c(head(features, n[i]), 'lbl')
+  train.data <- final[,n_features]
+  
+  fitSvm <- caret::train(lbl ~ ., data = train.data, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
+               trControl = train.control) 
 
+  #We check what columns are missing in the test dataframe and we add them setting their values to 0
+  test.matrix <- as.data.frame(tfidftest.matrix)
+  cols <- colnames(final)
+  Missing <- setdiff(cols, names(test.matrix))
+  test.matrix[Missing] <- 0
+  test.matrix <- test.matrix[cols]
+  
+  #We predict the two models on the test matrix
+  predSvm = predict(fitSvm, newdata=test.matrix)
+  
+  #And then we factorize the labels for visualization
+  con.matrix.svm<-confusionMatrix(predSvm, test$label)
+  accs <- c(accs, con.matrix.svm$overall[[1]])
+}
+qplot(n[1:length(accs)], accs, geom=c("point", "line"))
 
 ```
 ## Extract feature importances from a wrapper method
+
 ```{r varimp, echo=TRUE}
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-# train the model
-model <- caret::train(lbl~., data=final, method="lvq", preProcess="scale", trControl=control)
-# estimate variable importance
+# training the model
+model <- caret::train(lbl ~ ., data = final, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) # estimating variable importance
 importance <- varImp(model, scale=FALSE)$importance
-# summarize importance
-print(importance)
-# plot importance
+
 plot(varImp(model, scale=FALSE), top = 20)
 ```
 
