@@ -362,6 +362,9 @@ predSvm = predict(fitSvm, newdata=test.matrix)
 #print(con.matrix.rf)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
 print(con.matrix.svm)
+
+roc.curve(test$label, predSvm, main="ROC curve (Half circle depleted data)")
+
 table(train$label)
 table(test$label)
 majority_classifier <- length(which(test$label == 'No')) / length(test$label)
@@ -467,6 +470,7 @@ for (i in 1:length(n)) {
 qplot(n[1:length(accs)], accs, geom=c("point", "line"))
 
 ```
+
 ## Extract feature importances from a wrapper method
 
 ```{r varimp, echo=TRUE}
