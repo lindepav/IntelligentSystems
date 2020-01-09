@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r libraries, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
-#install.packages("proxy")
+#install.packages("ngram")
 #install.packages("ggplot2")
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
 library(stringr)
@@ -171,6 +171,7 @@ We will use Weighted TF-IDF as a way to represent the document space:
 ```{r cluster1, echo=TRUE}
 tdm <- tm::DocumentTermMatrix(corpus2) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
+
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
 ```
@@ -273,6 +274,9 @@ library(ipred)
 library(caret)
 library(tm)
 library(MLmetrics)
+library(rpart)
+library(rpart.plot)
+
 ```
 
 ```{r analyze, echo=TRUE}
@@ -327,21 +331,16 @@ tfidf.matrix <- as.matrix(tdm.tfidf)
 train$lbl <- train$label
 avector <- as.vector(train['lbl'])
 final <- cbind(tfidf.matrix, avector)
-#final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
 final <- as.data.frame(final)
+finalna <- final
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl)
 
-#fit <- bayesglm(lbl ~ . , data=final, family="binomial")
-fit = glm(lbl~., data=final, family="binomial", control = 5) # This doesnt complete for me but it should work
-#fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
-                                                            #there are different words in the test document
 dat <- twoClassSim(200)
 f1 <- function(data, lev = NULL, model = NULL) {
   f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
   c(F1 = f1_val)
 }
-
 
 train.control <- trainControl(method = "repeatedcv",
                           number = 10,
@@ -352,11 +351,33 @@ train.control <- trainControl(method = "repeatedcv",
                           search = "grid")
 
 
-fit <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
+fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
              trControl = trainControl(summaryFunction = f1, 
-                                      classProbs = TRUE)) 
+                                    classProbs = TRUE)) 
+
+
+
+fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
+             trControl = trainControl(summaryFunction = f1, 
+                                    classProbs = TRUE)) 
+
 test.matrix <- as.data.frame(tfidftest.matrix)
-pred<-predict(fit, test.matrix) 
+cols <- colnames(final)
+Missing <- setdiff(cols, names(test.matrix))
+test.matrix[Missing] <- 0
+test.matrix <- test.matrix[cols]
+
+predRf = predict(fitRf, newdata=test.matrix)
+predSvm = predict(fitSvm, newdata=test.matrix)
+
+test$label=ifelse(test$label==0,"No","Yes") 
+test$label <- as.factor(test$label)
+
+con.matrix.rf<-confusionMatrix(predRf, test$label)
+print(con.matrix.rf)
+
+con.matrix.svm<-confusionMatrix(predSvm, test$label)
+print(con.matrix.svm)
 ```
 
 # 4. Understanding
@@ -375,7 +396,7 @@ dim(tfidf.matrix)
 correlationMatrix <- cor(tfidf.matrix)
 # summarize the correlation matrix
 dim(correlationMatrix)
-# find attributes that are highly corrected (ideally >0.75)
+# find attributes that are highly corrected 
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
 # how many attributes stays (we get indices as 'highlyCorrelated')
 length(highlyCorrelated)
