@@ -171,7 +171,6 @@ We will use Weighted TF-IDF as a way to represent the document space:
 ```{r cluster1, echo=TRUE}
 tdm <- tm::DocumentTermMatrix(corpus2) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
-
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
 ```
@@ -282,9 +281,7 @@ library(ROSE)
 
 ```{r analyze, echo=TRUE}
 table(train$label)
-train$text_a = stemmed
 train <- ovun.sample(label ~ ., data = train, method = "over")$data
-train <- train[complete.cases(train),]
 table(train$label)
 ```
 
@@ -309,15 +306,14 @@ tfidftest.matrix <- as.matrix(tdmtest.tfidf)
 #table(train$label)
 
 stemmed <- stemDocument(train$text_a, language = "english")
-corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
-tdm <- tm::DocumentTermMatrix(corpus2) 
+corpus <- Corpus(VectorSource(stemmed)) # turn into corpus
+tdm <- tm::DocumentTermMatrix(corpus) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
 train$lbl <- train$label
 avector <- as.vector(train['lbl'])
 final <- cbind(tfidf.matrix, avector)
-#final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
 final <- as.data.frame(final) 
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes
@@ -334,20 +330,21 @@ train.control <- trainControl(method = "repeatedcv",
                           summaryFunction = f1,
                           search = "grid")
 fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
-             trControl = trainControl(summaryFunction = f1, 
-                                    classProbs = TRUE)) 
+             trControl = train.control) 
 fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
-             trControl = trainControl(summaryFunction = f1, 
-                                    classProbs = TRUE)) 
+             trControl = train.control) 
+
 #We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrix <- as.data.frame(tfidftest.matrix)
 cols <- colnames(final)
 Missing <- setdiff(cols, names(test.matrix))
 test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
+
 #We predict the two models on the test matrix
 predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
+
 #And then we factorize the labels for visualization
 test$label=ifelse(test$label==0,"No","Yes") 
 test$label <- as.factor(test$label)
@@ -359,7 +356,6 @@ print(con.matrix.svm)
 ```
 
 # 4. Understanding
-## Perform feature ranking 
 We will use only terms which occur in more than one document and which correlation with other terms is high:  
 ```{r filtering, echo=TRUE}
 # load the library
@@ -383,8 +379,8 @@ tfidf.matrix <- tfidf.matrix[,highlyCorrelated]
 dim(tfidf.matrix)
 
 ```
-
-We will use the TF-IDF matrix to calculate information gain:
+## Perform feature ranking 
+We will use the TF-IDF matrix to calculate information gain by filter method:
 ```{r feature-selection, echo=TRUE}
 #install.packages('ggpubr')
 library(mlr)
@@ -408,6 +404,43 @@ fv.plot$data
 plotFilterValues(fv.plot)
 ```
 
+## Re-evaluate the models performance for top n features 
+```{r nfeatures-model, echo=TRUE}
+features <- fv$data$name
+n_features <- c(head(features, 20), 'lbl')
+final <- final[,n_features]
+
+fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
+             trControl = train.control) 
+fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
+             trControl = train.control) 
+
+#We check what columns are missing in the test dataframe and we add them setting their values to 0
+test.matrix <- as.data.frame(tfidftest.matrix)
+cols <- colnames(final)
+Missing <- setdiff(cols, names(test.matrix))
+test.matrix[Missing] <- 0
+test.matrix <- test.matrix[cols]
+
+#We predict the two models on the test matrix
+predRf = predict(fitRf, newdata=test.matrix)
+predSvm = predict(fitSvm, newdata=test.matrix)
+
+#And then we factorize the labels for visualization
+test$label=ifelse(test$label==0,"No","Yes") 
+test$label <- as.factor(test$label)
+con.matrix.rf<-confusionMatrix(predRf, test$label)
+print(con.matrix.rf)
+test$label <- as.factor(test$label)
+con.matrix.svm<-confusionMatrix(predSvm, test$label)
+print(con.matrix.svm)
+
+```
+## Visualize model performance w.r.t. n by using the selected measure of performance.
+```{r nfeatures-visualize, echo=TRUE}
+
+
+```
 ## Extract feature importances from a wrapper method
 ```{r varimp, echo=TRUE}
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
