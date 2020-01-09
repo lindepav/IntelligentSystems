@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages("ngram")
 #install.packages("ggplot2")
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
+
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
 library(cluster)
@@ -93,6 +94,7 @@ for (i in 1:n) {
 }
 
 head(train$text_a)
+
 ```
 
 ## Remove unknown symbols (non UTF-8 characters)
@@ -264,6 +266,11 @@ for (i in 1:n) {
 head(docsPOS)
 head(stemmed)
 length(docsPOS)
+
+for(i in 1:length(docsPOS)){
+  docsPOS[i] = flatten(docsPOS[i])
+  docsPOS[i] = toString(docsPOS[i])
+}
 ```
 
 ```{r import4, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
@@ -305,8 +312,8 @@ tfidftest.matrix <- as.matrix(tdmtest.tfidf)
 #train <- train[sample_idx,]
 #table(train$label)
 
-stemmed <- stemDocument(train$text_a, language = "english")
-corpus <- Corpus(VectorSource(stemmed)) # turn into corpus
+#stemmed <- stemDocument(train$text_a, language = "english")
+corpus <- Corpus(VectorSource(train$text_a)) # turn into corpus
 tdm <- tm::DocumentTermMatrix(corpus) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
