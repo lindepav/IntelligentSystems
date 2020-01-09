@@ -280,6 +280,7 @@ library(rpart.plot)
 ```
 
 ```{r analyze, echo=TRUE}
+#Check how balanced is the training set
 table(train$label)
 train$text_a = stemmed
 ins <- sum(train$label)
@@ -288,6 +289,7 @@ torem <- notins - ins
 ratio <- ins/notins
 count <- 0
 numb <- train[3,1]
+#Removing of the rows so the number of 0/1s is equal
 for (i in 1:length(train$label)){
   if(count > torem){
     break
@@ -302,6 +304,7 @@ train <- train[complete.cases(train),]
 ```
 
 ```{r preprocess_test, echo=TRUE}
+#Here we clean the test set as well
 test$text_a = as.character(test$text_a)
 test$text_a = tm::removePunctuation(test$text_a)
 test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
@@ -332,15 +335,11 @@ train$lbl <- train$label
 avector <- as.vector(train['lbl'])
 final <- cbind(tfidf.matrix, avector)
 #final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
-final <- as.data.frame(final)
-finalna <- final
+final <- as.data.frame(final) 
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
-final$lbl <- as.factor(final$lbl)
+final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes
 
-#fit = glm(lbl~., data=final, family="binomial") #This doesnt complete for me but it should work
-fit <- train(lbl ~ ., data = final, method = 'bayesglm') #This works and takes little time but i cannot control it since
-                                                            #there are different words in the test document
-dat <- twoClassSim(200)
+dat <- twoClassSim(200) #A custom f1 funtion for the metric
 f1 <- function(data, lev = NULL, model = NULL) {
   f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
   c(F1 = f1_val)
@@ -367,6 +366,7 @@ fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength 
                                     classProbs = TRUE)) 
 
 
+#We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrix <- as.data.frame(tfidftest.matrix)
 cols <- colnames(final)
 Missing <- setdiff(cols, names(test.matrix))
@@ -374,10 +374,11 @@ test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
 
 
-
+#We predict the two models on the test matrix
 predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
 
+#And then we factorize the labels for visualization
 test$label=ifelse(test$label==0,"No","Yes") 
 test$label <- as.factor(test$label)
 
