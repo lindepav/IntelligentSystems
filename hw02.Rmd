@@ -39,11 +39,11 @@ train$text_a = tm::stripWhitespace(train$text_a)
 
 #train$text_a = tolower(train$text_a)
 word_count <- lapply(train$text_a, wordcount)
-length(which(word_count > 50))
-length(which(word_count < 50))
+length(which(word_count > 100))
+length(which(word_count < 100))
 length(which(word_count == 0))
 length(train$text_a)
-train <- train[which(word_count < 50),]
+train <- train[which(word_count < 100),]
 word_count <- lapply(train$text_a, wordcount)
 length(train$text_a)
 train <- train[which(word_count > 0),]
@@ -240,7 +240,7 @@ library(NLP)
 library(rJava)
 library(openNLP)
 library(openNLPmodels.en)
-detach("package:ggplot2", unload=TRUE)
+#detach("package:ggplot2", unload=TRUE)
 ```
 
 ```{r pos, echo=TRUE}
@@ -270,35 +270,22 @@ length(docsPOS)
 ```{r import4, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
 #install.packages("ipred")
 #install.packages("MLmetrics")
+
 library(ipred)
 library(caret)
 library(tm)
 library(MLmetrics)
 library(rpart)
 library(rpart.plot)
-
+library(ROSE)
 ```
 
 ```{r analyze, echo=TRUE}
 table(train$label)
 train$text_a = stemmed
-ins <- sum(train$label)
-notins <- length(train$label) - ins
-torem <- notins - ins
-ratio <- ins/notins
-count <- 0
-numb <- train[3,1]
-for (i in 1:length(train$label)){
-  if(count > torem){
-    break
-  }
-  
-  if(train[i,1] == numb){
-    train[i,1] <- NA
-    count <- count + 1
-  }
-}
+train <- ovun.sample(label ~ ., data = train, method = "over")$data
 train <- train[complete.cases(train),]
+table(train$label)
 ```
 
 ```{r preprocess_test, echo=TRUE}
@@ -317,9 +304,9 @@ tfidftest.matrix <- as.matrix(tdmtest.tfidf)
 ```
 
 ```{r model, echo = TRUE}
-sample_idx = sample(seq(1, length(train$text_a)), 100)
-train <- train[sample_idx,]
-table(train$label)
+#sample_idx = sample(seq(1, length(train$text_a)), 100)
+#train <- train[sample_idx,]
+#table(train$label)
 
 stemmed <- stemDocument(train$text_a, language = "english")
 corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
@@ -327,21 +314,18 @@ tdm <- tm::DocumentTermMatrix(corpus2)
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
-
 train$lbl <- train$label
 avector <- as.vector(train['lbl'])
 final <- cbind(tfidf.matrix, avector)
-final <- as.data.frame(final)
-finalna <- final
+#final <- cbind(tfidf.matrix[,highlyCorrelated], avector)
+final <- as.data.frame(final) 
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
-final$lbl <- as.factor(final$lbl)
-
-dat <- twoClassSim(200)
+final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes
+dat <- twoClassSim(200) #A custom f1 funtion for the metric
 f1 <- function(data, lev = NULL, model = NULL) {
   f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
   c(F1 = f1_val)
 }
-
 train.control <- trainControl(method = "repeatedcv",
                           number = 10,
                           repeats = 3,
@@ -349,33 +333,27 @@ train.control <- trainControl(method = "repeatedcv",
                           #sampling = "smote",
                           summaryFunction = f1,
                           search = "grid")
-
-
 fitRf <- train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
              trControl = trainControl(summaryFunction = f1, 
                                     classProbs = TRUE)) 
-
 fitSvm <- train(lbl ~ ., data = final, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
-             trControl = train.control) 
-
-
+             trControl = trainControl(summaryFunction = f1, 
+                                    classProbs = TRUE)) 
+#We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrix <- as.data.frame(tfidftest.matrix)
 cols <- colnames(final)
 Missing <- setdiff(cols, names(test.matrix))
 test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
-
+#We predict the two models on the test matrix
 predRf = predict(fitRf, newdata=test.matrix)
-fitRf
 predSvm = predict(fitSvm, newdata=test.matrix)
-fitSvm
-
+#And then we factorize the labels for visualization
 test$label=ifelse(test$label==0,"No","Yes") 
 test$label <- as.factor(test$label)
-
 con.matrix.rf<-confusionMatrix(predRf, test$label)
 print(con.matrix.rf)
-
+test$label <- as.factor(test$label)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
 print(con.matrix.svm)
 ```
