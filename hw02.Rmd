@@ -332,7 +332,8 @@ final <- as.data.frame(final)
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl)
 
-fit = glm(lbl~., data=final, family="binomial") #This doesnt complete for me but it should work
+#fit <- bayesglm(lbl ~ . , data=final, family="binomial")
+fit = glm(lbl~., data=final, family="binomial", control = 5) # This doesnt complete for me but it should work
 #fit <- train(label ~ ., data = train, method = 'bayesglm') #This works and takes little time but i cannot control it since
                                                             #there are different words in the test document
 dat <- twoClassSim(200)
@@ -422,6 +423,7 @@ plot(varImp(model, scale=FALSE), top = 20)
 ```
 
 ## Compare the two feature rankings 
+
 ```{r jaccard, echo=TRUE}
 library(ggplot2)
 get_jaccard <- function(A, B) {
