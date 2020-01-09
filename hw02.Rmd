@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages("ngram")
 #install.packages("ggplot2")
 library(gtools) # if problems calling library, install.packages("gtools", dependencies = T)
+
 library(stringr)
 library(tm) # framework for text mining; it loads NLP package
 library(cluster)
@@ -91,6 +92,7 @@ for (i in 1:n) {
 }
 
 head(train$text_a)
+
 ```
 
 ## Remove unknown symbols (non UTF-8 characters)
@@ -251,6 +253,11 @@ for (i in 1:n) {
 head(docsPOS)
 head(stemmed)
 length(docsPOS)
+
+for(i in 1:length(docsPOS)){
+  docsPOS[i] = flatten(docsPOS[i])
+  docsPOS[i] = toString(docsPOS[i])
+}
 ```
 # 3. Modeling
 ```{r preprocess_test, echo=TRUE}
@@ -303,7 +310,6 @@ library(MLmetrics)
 library(rpart)
 library(rpart.plot)
 library(ROSE)
-library(C50)
 
 ```
 The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed undersampling to get rid of this imbalance:
