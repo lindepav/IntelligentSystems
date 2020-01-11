@@ -23,10 +23,13 @@ library(ngram)
 ## 0. Read input
 ```{r import, echo=TRUE}
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+train.text = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
 length(which(!complete.cases(train)))
 head(train$text_a)
 ```
+
 
 
 # 1. Cleaning data
@@ -38,6 +41,7 @@ train$text_a = tm::removeWords(x = train$text_a, stopwords(kind = "SMART"))
 train$text_a = tm::stripWhitespace(train$text_a)
 
 #train$text_a = tolower(train$text_a)
+
 word_count <- lapply(train$text_a, wordcount)
 length(which(word_count > 100))
 length(which(word_count < 100))
@@ -92,6 +96,7 @@ for (i in 1:n) {
 }
 
 head(train$text_a)
+n <- length(train$text_a)
 
 ```
 
@@ -100,6 +105,46 @@ head(train$text_a)
 train$text_a <- iconv(train$text_a, to='UTF-8', sub='byte')
 length(train$text_a)
 head(train$text_a)
+```
+
+
+```{r pos, echo=TRUE}
+stemmed <- stemDocument(train$text_a, language = "english")
+docs <- stemmed
+n <- length(docs)
+word_ann <- Maxent_Word_Token_Annotator()
+sent_ann <- Maxent_Sent_Token_Annotator()
+pos_ann = Maxent_POS_Tag_Annotator()
+
+docsPOS <- list()
+for (i in 1:n) {
+  doc <-  as.String(docs[[i]])
+  wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
+  POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
+  POSWords <- subset(POSAnnotation, type == "word")  
+  POSTags <- vector()
+  for (j in 1:length(POSWords$features))
+    POSTags <- c(POSTags, POSWords$features[[j]]$POS)
+  docsPOS[[i]] <- list(POSTags)
+}
+
+head(docsPOS)
+head(stemmed)
+length(docsPOS)
+
+for(i in 1:length(docsPOS)){
+  docsPOS[i] = flatten(docsPOS[i])
+  docsPOS[[i]] = paste(docsPOS[[i]], collapse=" ")
+  #docsPOS[i] = paste(docsPOS[i], collapse=" ")
+  
+}
+
+docsPOS <- matrix(docsPOS,801,1)
+docsPOS <- unlist(docsPOS)
+trainPOS <- train
+textPOS <- trainPOS$text_a
+textPOS <- paste(textPOS, docsPOS)
+trainPOS$text_a <- textPOS
 ```
 
 # 2. Exploration
@@ -136,6 +181,8 @@ qplot(freq[1:30], occ[1:30], xlab = "Frequency of word", ylab = "# of occurencie
 ```{r stemmization1, echo=TRUE}
 stemmed <- stemDocument(train$text_a, language = "english")
 corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
+stemmedPOS <- stemDocument(trainPOS$text_a, language = "english")
+corpusPOS <- Corpus(VectorSource(stemmedPOS)) # turn into corpus
 ```
 ```{r freq2, echo=FALSE}
 tdm2 <- TermDocumentMatrix(corpus2)
@@ -163,6 +210,11 @@ tdm <- tm::DocumentTermMatrix(corpus2)
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
+
+tdmPOS <- tm::DocumentTermMatrix(corpusPOS) 
+tdmPOS.tfidf <- tm::weightTfIdf(tdmPOS)
+tdmPOS.tfidf <- tm::removeSparseTerms(tdmPOS.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidfPOS.matrix <- as.matrix(tdmPOS.tfidf) 
 ```
 Afterwards, we perform k-means algorithm to cluster in {2,4,8,16} classes.
 ```{r cluster2, echo=TRUE}
@@ -231,34 +283,7 @@ library(openNLPmodels.en)
 detach("package:ggplot2", unload=TRUE)
 ```
 
-```{r pos, echo=TRUE}
-docs <- stemmed
-n <- length(docs)
-word_ann <- Maxent_Word_Token_Annotator()
-sent_ann <- Maxent_Sent_Token_Annotator()
-pos_ann = Maxent_POS_Tag_Annotator()
 
-docsPOS <- list()
-for (i in 1:n) {
-  doc <-  as.String(docs[[i]])
-  wordAnnotation <- annotate(doc, list(sent_ann, word_ann))
-  POSAnnotation <- annotate(doc, pos_ann, wordAnnotation)
-  POSWords <- subset(POSAnnotation, type == "word")  
-  POSTags <- vector()
-  for (j in 1:length(POSWords$features))
-    POSTags <- c(POSTags, POSWords$features[[j]]$POS)
-  docsPOS[[i]] <- list(POSTags)
-}
-
-head(docsPOS)
-head(stemmed)
-length(docsPOS)
-
-for(i in 1:length(docsPOS)){
-  docsPOS[i] = flatten(docsPOS[i])
-  docsPOS[i] = toString(docsPOS[i])
-}
-```
 # 3. Modeling
 ```{r preprocess_test, echo=TRUE}
 test$text_a = as.character(test$text_a)
@@ -312,12 +337,17 @@ library(rpart.plot)
 library(ROSE)
 
 ```
-The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed undersampling to get rid of this imbalance:
+#The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed oversampling to get rid of this imbalance:
 ```{r analyze, echo=TRUE}
 train$text_a = stemmed
 table(train$label)
 train2 <- ovun.sample(label ~ ., data = train, method = "over")$data
 table(train2$label)
+
+trainPOS$text_a = stemmedPOS
+table(trainPOS$label)
+train2POS <- ovun.sample(label ~ ., data = trainPOS, method = "over")$data
+table(train2POS$label)
 ```
 ```{r undersampling-tfidf, echo=TRUE, results='hide'}
 corpus <- Corpus(VectorSource(train2$text_a)) # turn into corpus
@@ -325,6 +355,12 @@ tdm <- tm::DocumentTermMatrix(corpus)
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrix <- as.matrix(tdm.tfidf) 
+
+corpusPOS <- Corpus(VectorSource(train2POS$text_a)) # turn into corpus
+tdmPOS <- tm::DocumentTermMatrix(corpusPOS) 
+tdmPOS.tfidf <- tm::weightTfIdf(tdmPOS)
+tdmPOS.tfidf <- tm::removeSparseTerms(tdmPOS.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidfPOS.matrix <- as.matrix(tdmPOS.tfidf) 
 ```
 
 ```{r model, echo = TRUE}
@@ -334,6 +370,17 @@ final <- cbind(tfidf.matrix, avector)
 final <- as.data.frame(final) 
 final$lbl=ifelse(final$lbl==0,"No","Yes") 
 final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes
+
+train2POS$lbl <- train2POS$label
+avector <- as.vector(train2POS['lbl'])
+finalPOS <- cbind(tfidfPOS.matrix, avector)
+finalPOS <- as.data.frame(finalPOS) 
+finalPOS$lbl=ifelse(finalPOS$lbl==0,"No","Yes") 
+finalPOSl$lbl <- as.factor(finalPOS$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes
+
+
+
+
 dat <- twoClassSim(200) #A custom f1 funtion for the metric
 f1 <- function(data, lev = NULL, model = NULL) {
   f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
@@ -346,28 +393,41 @@ train.control <- trainControl(method = "repeatedcv",
                           summaryFunction = f1,
                           search = "grid")
 #fitRf <- caret::train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
- #            trControl = train.control
+             trControl = train.control)
 fitSvm <- caret::train(lbl ~ ., data = final, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
+fitSvmPOS <- caret::train(lbl ~ ., data = finalPOS, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
+
 
 print(fitSvm$results$F1)
+print(fitSvmPOS$results$F1)
 
-#We check what columns are missing in the test dataframe and we add them setting their values to 0
+
+  #We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrix <- as.data.frame(tfidftest.matrix)
 cols <- colnames(final)
 Missing <- setdiff(cols, names(test.matrix))
 test.matrix[Missing] <- 0
 test.matrix <- test.matrix[cols]
 
+test.matrix.pos <- as.data.frame(tfidftest.matrix)
+colsPOS <- colnames(finalPOS)
+MissingPOS <- setdiff(colsPOS, names(test.matrix.pos))
+test.matrix.pos[MissingPOS] <- 0
+test.matrix.pos <- test.matrix.pos[colsPOS]
+
 #We predict the two models on the test matrix
 #predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
+predSvm = predict(fitSvmPOS, newdata=test.matrix.pos)
 
 #And then we factorize the labels for visualization
 #test$label <- as.factor(test$label)
 #con.matrix.rf<-confusionMatrix(predRf, test$label)
 #print(con.matrix.rf)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
+con.matrix.svm.pos<-confusionMatrix(predSvmPOS, test$label)
 print(con.matrix.svm)
+print(con.matrix.svm.pos)
 
 roc.curve(test$label, predSvm, main="ROC curve (Half circle depleted data)")
 
