@@ -169,7 +169,7 @@ tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well 
 tfidf.matrix <- as.matrix(tdm.tfidf) 
 ```
 Afterwards, we perform k-means algorithm to cluster in {2,4,8,16} classes.
-```{r cluster2, echo=TRUE}
+```{r cluster2, echo=TRUE, cache=TRUE}
 cluster2 <- kmeans(tfidf.matrix, centers=2)
 cluster4 <- kmeans(tfidf.matrix, centers=4)
 cluster8 <- kmeans(tfidf.matrix, centers=8)
@@ -235,11 +235,10 @@ library(NLP)
 library(rJava)
 library(openNLP)
 library(openNLPmodels.en)
-library(purrr)
 detach("package:ggplot2", unload=TRUE)
 ```
 
-```{r pos, echo=TRUE, cache=TRUE}
+```{r pos, echo=TRUE, cache=FALSE}
 stemmed <- stemDocument(train$text_a, language = "english")
 docs <- stemmed
 n <- length(docs)
@@ -259,6 +258,7 @@ for (i in 1:n) {
   docsPOS[[i]] <- list(POSTags)
 }
 
+library(purrr)
 for(i in 1:length(docsPOS)){
   docsPOS[i] = flatten(docsPOS[i])
   docsPOS[[i]] = paste(docsPOS[[i]], collapse=" ")
@@ -280,7 +280,7 @@ head(stemmedPOS)
 ```
 
 # 3. Modeling
-```{r preprocess_test, echo=TRUE, cache=TRUE}
+```{r preprocess_test, echo=TRUE, cache=FALSE}
 test$text_a = as.character(test$text_a)
 test$text_a = tm::removePunctuation(test$text_a)
 test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
@@ -480,12 +480,8 @@ We will use the TF-IDF matrix to calculate information gain by filter method:
 #install.packages('ggpubr')
 library(mlr)
 library(ggpubr)
-train$lbl <- train$label
-avector <- as.vector(train['lbl'])
-final <- cbind(tfidf.matrix, avector)
-final <- as.data.frame(final) 
-final$lbl=ifelse(final$lbl==0,"No","Yes") 
-final$lbl <- as.factor(final$lbl)
+
+final <- create_model_data(tfidf.matrixSVM, avectorSVM)
 colnames(final) <- make.names(colnames(final),unique = T)
 label.task <- makeClassifTask(data=final, target='lbl')
 
@@ -502,21 +498,19 @@ plotFilterValues(fv.plot)
 ```{r nfeatures-model, echo=TRUE}
 features <- fv$data$name
 n_features <- c(head(features, 20), 'lbl')
-train.dataSVM <- finalSVM[,n_features]
-train.dataRf <- finalRf[,n_features]
+train.data <- finalSVM[,n_features]
 
-fitSvm <- caret::train(lbl ~ ., data = train.dataSVM, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
+fitSvm <- caret::train(lbl ~ ., data = train.data, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
              trControl = train.control) 
-fitRf <- caret::train(lbl ~ ., data = train.dataRf, method = 'rf',tuneLength = 5, metric = "F1",
+fitRf <- caret::train(lbl ~ ., data = train.data, method = 'rf',tuneLength = 5, metric = "F1",
              trControl = train.control)
 fitSvm$results
 fitRf$results
 
-test.matrixRf <- clean_test(train.dataRf)
-test.matrixSVM <- clean_test(train.dataSVM)
+test.matrix <- clean_test(train.data)
 
 #We predict the two models on the test matrix
-predRf = predict(fitRf, newdata=test.matrixRf)
+predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
 
 #And then we factorize the labels for visualization
@@ -528,7 +522,7 @@ print(con.matrix.rf$overall)
 print(con.matrix.svm$overall)
 ```
 ## Visualize model performance w.r.t. n by using the selected measure of performance.
-```{r nfeatures-visualize, echo=TRUE}
+```{r nfeatures-visualize, echo=TRUE, cache=TRUE}
 library(ggplot2)
 features <- fv$data$name
 n <- c(seq(10, 50, 10), 100, 200, 500)
