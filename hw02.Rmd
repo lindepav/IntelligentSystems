@@ -64,7 +64,7 @@ library(openNLPmodels.en)
 library(digest)
 ```
 
-```{r anonymize, echo=TRUE}
+```{r anonymize, echo=TRUE, cache=TRUE}
 n <- length(train$text_a)
 word_ann <- Maxent_Word_Token_Annotator()
 sent_ann <- Maxent_Sent_Token_Annotator()
@@ -231,7 +231,7 @@ library(openNLPmodels.en)
 detach("package:ggplot2", unload=TRUE)
 ```
 
-```{r pos, echo=TRUE}
+```{r pos, echo=TRUE, cache=TRUE}
 docs <- stemmed
 n <- length(docs)
 word_ann <- Maxent_Word_Token_Annotator()
@@ -260,7 +260,7 @@ for(i in 1:length(docsPOS)){
 }
 ```
 # 3. Modeling
-```{r preprocess_test, echo=TRUE}
+```{r preprocess_test, echo=TRUE, cache=TRUE}
 test$text_a = as.character(test$text_a)
 test$text_a = tm::removePunctuation(test$text_a)
 test$text_a = tm::removeWords(x = test$text_a, stopwords(kind = "SMART"))
@@ -316,24 +316,54 @@ The train dataset is imbalanced with, where there are more than 2 times as much 
 ```{r analyze, echo=TRUE}
 train$text_a = stemmed
 table(train$label)
-train2 <- ovun.sample(label ~ ., data = train, method = "over")$data
-table(train2$label)
+trainSVM <- ovun.sample(label ~ ., data = train, method = "over")$data
+trainRf <- train[sample(nrow(train), 100), ]
+trainRf <- ovun.sample(label ~ ., data = trainRf, method = "over", 150)$data
+table(trainSVM$label)
+table(trainRf$label)
 ```
+```{r model_functions, echo=TRUE, results='hide'}
+clean_test <- function(final) {
+  test.matrix <- as.data.frame(tfidftest.matrix)
+  cols <- colnames(final)
+  Missing <- setdiff(cols, names(test.matrix))
+  test.matrix[Missing] <- 0
+  test.matrix <- test.matrix[cols]
+  return(test.matrix)
+}
+
+create_model_date <- function(tdidf.matrix, avector) {
+  final <- cbind(tfidf.matrix, avector)
+  final <- as.data.frame(final) 
+  final$lbl=ifelse(final$lbl==0,"No","Yes") 
+  final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes  
+  return(final)
+}
+```
+
 ```{r undersampling-tfidf, echo=TRUE, results='hide'}
-corpus <- Corpus(VectorSource(train2$text_a)) # turn into corpus
+corpus <- Corpus(VectorSource(trainRf$text_a)) # turn into corpus
 tdm <- tm::DocumentTermMatrix(corpus) 
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
-tfidf.matrix <- as.matrix(tdm.tfidf) 
+tfidf.matrixRf <- as.matrix(tdm.tfidf) 
+
+corpus <- Corpus(VectorSource(trainSVM$text_a)) # turn into corpus
+tdm <- tm::DocumentTermMatrix(corpus) 
+tdm.tfidf <- tm::weightTfIdf(tdm)
+tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidf.matrixSVM <- as.matrix(tdm.tfidf) 
 ```
 
-```{r model, echo = TRUE}
-train2$lbl <- train2$label
-avector <- as.vector(train2['lbl'])
-final <- cbind(tfidf.matrix, avector)
-final <- as.data.frame(final) 
-final$lbl=ifelse(final$lbl==0,"No","Yes") 
-final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes
+```{r model, echo = TRUE, cache=TRUE}
+trainRf$lbl <- trainRf$label
+trainSVM$lbl <- trainSVM$label
+avectorRf <- as.vector(trainRf['lbl'])
+avectorSVM <- as.vector(trainSVM['lbl'])
+
+finalRf <- create_model_date(tfidf.matrixRf, avectorRf)
+finalSVM <- create_model_date(tfidf.matrixSVM, avectorSVM)
+
 dat <- twoClassSim(200) #A custom f1 funtion for the metric
 f1 <- function(data, lev = NULL, model = NULL) {
   f1_val <- F1_Score(y_pred = data$pred, y_true = data$obs, positive = lev[1])
@@ -345,31 +375,29 @@ train.control <- trainControl(method = "repeatedcv",
                           classProbs = TRUE,
                           summaryFunction = f1,
                           search = "grid")
-#fitRf <- caret::train(lbl ~ ., data = final, method = 'rf',tuneLength = 5, metric = "F1",
- #            trControl = train.control
-fitSvm <- caret::train(lbl ~ ., data = final, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
+fitRf <- caret::train(lbl ~ ., data = finalRf, method = 'rf',tuneLength = 5, metric = "F1",
+             trControl = train.control)
+fitSvm <- caret::train(lbl ~ ., data = finalSVM, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
 
-print(fitSvm$results$F1)
+print(fitRf$results)
+print(fitSvm$results)
 
 #We check what columns are missing in the test dataframe and we add them setting their values to 0
-test.matrix <- as.data.frame(tfidftest.matrix)
-cols <- colnames(final)
-Missing <- setdiff(cols, names(test.matrix))
-test.matrix[Missing] <- 0
-test.matrix <- test.matrix[cols]
+test.matrixRf <- clean_test(finalRf)
+test.matrixSVM <- clean_test(finalSVM)
 
 #We predict the two models on the test matrix
-#predRf = predict(fitRf, newdata=test.matrix)
-predSvm = predict(fitSvm, newdata=test.matrix)
+predRf = predict(fitRf, newdata=test.matrixRf)
+predSvm = predict(fitSvm, newdata=test.matrixSVM)
 
 #And then we factorize the labels for visualization
-#test$label <- as.factor(test$label)
-#con.matrix.rf<-confusionMatrix(predRf, test$label)
-#print(con.matrix.rf)
+con.matrix.rf<-confusionMatrix(predRf, test$label)
+print(con.matrix.rf)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
 print(con.matrix.svm)
 
-roc.curve(test$label, predSvm, main="ROC curve (Half circle depleted data)")
+roc.curve(test$label, predRf, main="RF - ROC curve")
+roc.curve(test$label, predSvm, main="SVM - ROC curve")
 
 table(train$label)
 table(test$label)
