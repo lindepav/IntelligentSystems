@@ -23,10 +23,13 @@ library(ngram)
 ## 0. Read input
 ```{r import, echo=TRUE}
 train = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+train.text = read.table(file = 'train.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+
 test = read.table(file = 'test.tsv', sep = '\t', header = TRUE)
 length(which(!complete.cases(train)))
 head(train$text_a)
 ```
+
 
 
 # 1. Cleaning data
@@ -37,7 +40,6 @@ train$text_a = tm::removePunctuation(train$text_a)
 train$text_a = tm::removeWords(x = train$text_a, stopwords(kind = "SMART"))
 train$text_a = tm::stripWhitespace(train$text_a)
 
-#train$text_a = tolower(train$text_a)
 word_count <- lapply(train$text_a, wordcount)
 length(which(word_count > 100))
 length(which(word_count < 100))
@@ -92,6 +94,7 @@ for (i in 1:n) {
 }
 
 head(train$text_a)
+n <- length(train$text_a)
 
 ```
 
@@ -137,6 +140,7 @@ qplot(freq[1:30], occ[1:30], xlab = "Frequency of word", ylab = "# of occurencie
 stemmed <- stemDocument(train$text_a, language = "english")
 corpus2 <- Corpus(VectorSource(stemmed)) # turn into corpus
 ```
+
 ```{r freq2, echo=FALSE}
 tdm2 <- TermDocumentMatrix(corpus2)
 wordFreq <- sort(rowSums(as.matrix(tdm2)), decreasing=TRUE)
@@ -176,8 +180,9 @@ cluster4.master <- cluster4$cluster
 cluster8.master <- cluster8$cluster
 cluster16.master <- cluster16$cluster
 ```
+
 We perform Classical multidimensional scaling (SMC) to map the data (distance matrix) into 2D dimension and then visualize it.
-```{r cluster_visualize, echo=TRUE}
+```{r cluster_visualize, echo=TRUE, cache=TRUE}
 dist.matrix = proxy::dist(tfidf.matrix, method = "cosine") 
 points <- cmdscale(dist.matrix, k = 2) 
 previous.par <- par(mfrow=c(2,2), mar = rep(1.5, 4)) 
@@ -188,31 +193,32 @@ plot(points, main = 'K-Means clustering (k=2)', col = my_palette[as.factor(clust
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,2)), fill = my_palette[1:2])
-clusplot(points, cluster2.master, main='K-Means clustering (k=2)', color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster2.master, main='K-Means clustering (k=2)', color=TRUE, shade=TRUE, labels=5, lines=0, span = TRUE, stand=TRUE)
 
 my_palette = sample(color, 4)
 plot(points, main = 'K-Means clustering (k=4)', col = my_palette[as.factor(cluster4.master)], 
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,4)), fill = my_palette[1:4])
-clusplot(points, cluster4.master, main = 'K-Means clustering (k=4)', color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster4.master, main = 'K-Means clustering (k=4)', color=TRUE, shade=TRUE, labels=5, lines=0, span = TRUE)
 
 my_palette = sample(color, 8)
 plot(points, main = 'K-Means clustering (k=8)', col = my_palette[as.factor(cluster8.master)], 
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,8)), fill = my_palette[1:8])
-clusplot(points, cluster8.master, main = 'K-Means clustering (k=8)', color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster8.master, main = 'K-Means clustering (k=8)', color=TRUE, shade=TRUE, labels=5, lines=0, span = TRUE)
 
 my_palette = sample(color, 16)
 plot(points, main = 'K-Means clustering (k=16)', col = my_palette[as.factor(cluster16.master)],  
      mai = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), 
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", sprintf("%s",seq(1,16)), fill = my_palette[1:16])
-clusplot(points, cluster16.master, main = 'K-Means clustering (k=16)', color=TRUE, shade=TRUE, labels=2, lines=0)
+clusplot(points, cluster16.master, main = 'K-Means clustering (k=16)', color=TRUE, shade=TRUE, labels=5, lines=0, span = TRUE)
 
 par(previous.par) # recovering the original plot space parameters 
 ```
+
 ```{r class_coloring, echo=TRUE}
 points <- cmdscale(dist.matrix, k = 2) 
 colors <- c('red', 'blue')
@@ -222,16 +228,19 @@ plot(points, main = 'Documents with class labels', col = colors[as.factor(train$
      xaxt = 'n', yaxt = 'n', xlab = '', ylab = '') 
 legend("topright", c('ham', 'insult'), fill = colors[1:2])
 ```
+
 ```{r import3, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
 #install.packages("openNLPmodels.en", dependencies=TRUE, repos = "http://datacube.wu.ac.at/")
 library(NLP)
 library(rJava)
 library(openNLP)
 library(openNLPmodels.en)
+library(purrr)
 detach("package:ggplot2", unload=TRUE)
 ```
 
 ```{r pos, echo=TRUE, cache=TRUE}
+stemmed <- stemDocument(train$text_a, language = "english")
 docs <- stemmed
 n <- length(docs)
 word_ann <- Maxent_Word_Token_Annotator()
@@ -250,15 +259,26 @@ for (i in 1:n) {
   docsPOS[[i]] <- list(POSTags)
 }
 
-head(docsPOS)
-head(stemmed)
-length(docsPOS)
-
 for(i in 1:length(docsPOS)){
   docsPOS[i] = flatten(docsPOS[i])
-  docsPOS[i] = toString(docsPOS[i])
+  docsPOS[[i]] = paste(docsPOS[[i]], collapse=" ")
 }
+
+head(docsPOS)
+head(stemmed)    
+length(docsPOS)
+
+docsPOS <- matrix(docsPOS, 801, 1)
+docsPOS <- unlist(docsPOS)
+trainPOS <- train
+textPOS <- trainPOS$text_a
+textPOS <- paste(textPOS, docsPOS)
+trainPOS$text_a <- textPOS
+stemmedPOS <- stemDocument(trainPOS$text_a, language = "english")
+
+head(stemmedPOS)
 ```
+
 # 3. Modeling
 ```{r preprocess_test, echo=TRUE, cache=TRUE}
 test$text_a = as.character(test$text_a)
@@ -310,34 +330,45 @@ library(MLmetrics)
 library(rpart)
 library(rpart.plot)
 library(ROSE)
-
 ```
-The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed undersampling to get rid of this imbalance:
+
+#The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed oversampling to get rid of this imbalance:
 ```{r analyze, echo=TRUE}
 train$text_a = stemmed
+trainPOS$text_a = stemmedPOS
+
 table(train$label)
 trainSVM <- ovun.sample(label ~ ., data = train, method = "over")$data
 trainRf <- train[sample(nrow(train), 100), ]
 trainRf <- ovun.sample(label ~ ., data = trainRf, method = "over", 150)$data
+trainPOS <- ovun.sample(label ~ ., data = trainPOS, method = "over")$data
+
+print('SVM Model:')
 table(trainSVM$label)
+print('RF Model:')
 table(trainRf$label)
+print('SVM with Tags Model:')
+table(trainPOS$label)
 ```
+
 ```{r model_functions, echo=TRUE, results='hide'}
-clean_test <- function(final) {
+clean_test <- function(data) {
   test.matrix <- as.data.frame(tfidftest.matrix)
-  cols <- colnames(final)
+  cols <- colnames(data)
   Missing <- setdiff(cols, names(test.matrix))
   test.matrix[Missing] <- 0
   test.matrix <- test.matrix[cols]
   return(test.matrix)
 }
 
-create_model_date <- function(tdidf.matrix, avector) {
-  final <- cbind(tfidf.matrix, avector)
-  final <- as.data.frame(final) 
-  final$lbl=ifelse(final$lbl==0,"No","Yes") 
-  final$lbl <- as.factor(final$lbl) #Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes  
-  return(final)
+create_model_data <- function(matrix, avect) {
+  result <- cbind(matrix, avect)
+  result <- as.data.frame(result) 
+  result$lbl=ifelse(result$lbl==0,"No","Yes") 
+  
+  # Adding a vector of labels to the tfidf matrix changing the 0s to No and 1s to Yes  
+  result$lbl <- as.factor(result$lbl) 
+  return(result)
 }
 ```
 
@@ -353,16 +384,25 @@ tdm <- tm::DocumentTermMatrix(corpus)
 tdm.tfidf <- tm::weightTfIdf(tdm)
 tdm.tfidf <- tm::removeSparseTerms(tdm.tfidf, 0.999)  # sparsity being not well handled overall in R
 tfidf.matrixSVM <- as.matrix(tdm.tfidf) 
+
+corpus <- Corpus(VectorSource(trainPOS$text_a)) # turn into corpus
+tdmPOS <- tm::DocumentTermMatrix(corpus) 
+tdmPOS.tfidf <- tm::weightTfIdf(tdmPOS)
+tdmPOS.tfidf <- tm::removeSparseTerms(tdmPOS.tfidf, 0.999)  # sparsity being not well handled overall in R
+tfidf.matrixPOS <- as.matrix(tdmPOS.tfidf) 
 ```
 
 ```{r model, echo = TRUE, cache=TRUE}
 trainRf$lbl <- trainRf$label
 trainSVM$lbl <- trainSVM$label
+trainPOS$lbl <- trainPOS$label
 avectorRf <- as.vector(trainRf['lbl'])
 avectorSVM <- as.vector(trainSVM['lbl'])
+avectorPOS <- as.vector(trainPOS['lbl'])
 
-finalRf <- create_model_date(tfidf.matrixRf, avectorRf)
-finalSVM <- create_model_date(tfidf.matrixSVM, avectorSVM)
+finalRf <- create_model_data(tfidf.matrixRf, avectorRf)
+finalSVM <- create_model_data(tfidf.matrixSVM, avectorSVM)
+finalPOS <- create_model_data(tfidf.matrixPOS, avectorPOS)
 
 dat <- twoClassSim(200) #A custom f1 funtion for the metric
 f1 <- function(data, lev = NULL, model = NULL) {
@@ -375,29 +415,37 @@ train.control <- trainControl(method = "repeatedcv",
                           classProbs = TRUE,
                           summaryFunction = f1,
                           search = "grid")
+
 fitRf <- caret::train(lbl ~ ., data = finalRf, method = 'rf',tuneLength = 5, metric = "F1",
              trControl = train.control)
 fitSvm <- caret::train(lbl ~ ., data = finalSVM, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
+fitSvmPOS <- caret::train(lbl ~ ., data = finalPOS, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) 
 
 print(fitRf$results)
 print(fitSvm$results)
+print(fitSvmPOS$results)
 
 #We check what columns are missing in the test dataframe and we add them setting their values to 0
 test.matrixRf <- clean_test(finalRf)
 test.matrixSVM <- clean_test(finalSVM)
+test.matrixPOS <- clean_test(finalPOS)
 
 #We predict the two models on the test matrix
 predRf = predict(fitRf, newdata=test.matrixRf)
 predSvm = predict(fitSvm, newdata=test.matrixSVM)
+predSvmPOS = predict(fitSvmPOS, newdata=test.matrixPOS)
 
 #And then we factorize the labels for visualization
 con.matrix.rf<-confusionMatrix(predRf, test$label)
-print(con.matrix.rf)
 con.matrix.svm<-confusionMatrix(predSvm, test$label)
+con.matrix.svm.pos<-confusionMatrix(predSvmPOS, test$label)
+print(con.matrix.rf)
 print(con.matrix.svm)
+print(con.matrix.svm.pos)
 
 roc.curve(test$label, predRf, main="RF - ROC curve")
 roc.curve(test$label, predSvm, main="SVM - ROC curve")
+roc.curve(test$label, predSvm, main="SVM with POS tags - ROC curve")
 
 table(train$label)
 table(test$label)
@@ -425,6 +473,7 @@ dim(tfidf.matrix)
 tfidf.matrix <- tfidf.matrix[,-which(rowSums(as.matrix(tdm2)) == 1)]
 dim(tfidf.matrix)
 ```
+
 ## Perform feature ranking 
 We will use the TF-IDF matrix to calculate information gain by filter method:
 ```{r feature-selection, echo=TRUE, warning=FALSE}
@@ -453,26 +502,30 @@ plotFilterValues(fv.plot)
 ```{r nfeatures-model, echo=TRUE}
 features <- fv$data$name
 n_features <- c(head(features, 20), 'lbl')
-train.data <- final[,n_features]
+train.dataSVM <- finalSVM[,n_features]
+train.dataRf <- finalRf[,n_features]
 
-fitSvm <- caret::train(lbl ~ ., data = train.data, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
+fitSvm <- caret::train(lbl ~ ., data = train.dataSVM, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
              trControl = train.control) 
-fitSvm$results$F1
+fitRf <- caret::train(lbl ~ ., data = train.dataRf, method = 'rf',tuneLength = 5, metric = "F1",
+             trControl = train.control)
+fitSvm$results
+fitRf$results
 
-test.matrix <- as.data.frame(tfidftest.matrix)
-cols <- colnames(final)
-Missing <- setdiff(cols, names(test.matrix))
-test.matrix[Missing] <- 0
-test.matrix <- test.matrix[cols]
+test.matrixRf <- clean_test(train.dataRf)
+test.matrixSVM <- clean_test(train.dataSVM)
 
 #We predict the two models on the test matrix
+predRf = predict(fitRf, newdata=test.matrixRf)
 predSvm = predict(fitSvm, newdata=test.matrix)
 
 #And then we factorize the labels for visualization
-con.matrix.svm<-confusionMatrix(predSvm, test$label)
-print(con.matrix.svm)
-print(con.matrix.svm$overall[1])
-
+con.matrix.rf2<-confusionMatrix(predRf, test$label)
+con.matrix.svm2<-confusionMatrix(predSvm, test$label)
+print(con.matrix.rf2$overall)
+print(con.matrix.svm2$overall)
+print(con.matrix.rf$overall)
+print(con.matrix.svm$overall)
 ```
 ## Visualize model performance w.r.t. n by using the selected measure of performance.
 ```{r nfeatures-visualize, echo=TRUE}
