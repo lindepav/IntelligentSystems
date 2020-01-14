@@ -333,7 +333,7 @@ library(ROSE)
 ```
 
 #The train dataset is imbalanced with, where there are more than 2 times as much documents labeled as non-insults than insults. We performed oversampling to get rid of this imbalance:
-```{r analyze, echo=TRUE}
+```{r analyze, echo=TRUE, cache=FALSE}
 train$text_a = stemmed
 trainPOS$text_a = stemmedPOS
 
@@ -392,7 +392,7 @@ tdmPOS.tfidf <- tm::removeSparseTerms(tdmPOS.tfidf, 0.999)  # sparsity being not
 tfidf.matrixPOS <- as.matrix(tdmPOS.tfidf) 
 ```
 
-```{r model, echo = TRUE, cache=TRUE}
+```{r model, echo = TRUE, cache=FALSE}
 trainRf$lbl <- trainRf$label
 trainSVM$lbl <- trainSVM$label
 trainPOS$lbl <- trainPOS$label
@@ -476,11 +476,11 @@ dim(tfidf.matrix)
 
 ## Perform feature ranking 
 We will use the TF-IDF matrix to calculate information gain by filter method:
-```{r feature-selection, echo=TRUE, warning=FALSE}
+```{r feature-selection, echo=TRUE, warning=FALSE, cache=TRUE}
 #install.packages('ggpubr')
 library(mlr)
 library(ggpubr)
-
+finalRf <- create_model_data(tfidf.matrixRf, avectorRf)
 final <- create_model_data(tfidf.matrixSVM, avectorSVM)
 colnames(final) <- make.names(colnames(final),unique = T)
 label.task <- makeClassifTask(data=final, target='lbl')
@@ -497,7 +497,7 @@ plotFilterValues(fv.plot)
 ## Re-evaluate the models performance for top n features 
 ```{r nfeatures-model, echo=TRUE}
 features <- fv$data$name
-n_features <- c(head(features, 20), 'lbl')
+n_features <- c(head(features, 25), 'lbl')
 train.data <- finalSVM[,n_features]
 
 fitSvm <- caret::train(lbl ~ ., data = train.data, method = 'svmLinear',scale=F, tuneLength = 5, metric = "F1",
@@ -514,8 +514,8 @@ predRf = predict(fitRf, newdata=test.matrix)
 predSvm = predict(fitSvm, newdata=test.matrix)
 
 #And then we factorize the labels for visualization
-con.matrix.rf2<-confusionMatrix(predRf, test$label)
-con.matrix.svm2<-confusionMatrix(predSvm, test$label)
+con.matrix.rf2 <- confusionMatrix(predRf, test$label)
+con.matrix.svm2 <- confusionMatrix(predSvm, test$label)
 print(con.matrix.rf2$overall)
 print(con.matrix.svm2$overall)
 print(con.matrix.rf$overall)
@@ -554,7 +554,7 @@ qplot(n[1:length(accs)], accs, geom=c("point", "line"))
 
 ## Extract feature importances from a wrapper method
 
-```{r varimp, echo=TRUE}
+```{r varimp, echo=TRUE, cache=TRUE}
 # training the model
 model <- caret::train(lbl ~ ., data = final, method = 'svmLinear', scale=F, tuneLength = 5, metric = "F1", trControl=train.control) # estimating variable importance
 importance <- varImp(model, scale=FALSE)$importance

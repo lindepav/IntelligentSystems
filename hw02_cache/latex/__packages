@@ -19,3 +19,8 @@ MLmetrics
 rpart
 rpart.plot
 ROSE
+mlbench
+ParamHelpers
+mlr
+magrittr
+ggpubr
